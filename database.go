@@ -135,10 +135,42 @@ func AddTask(db *sqlx.DB, task Task) (int64, error) {
 								task_id, :description, :status, :created_at, :updated_at, :priority,  
 								:assignee_id, :do_date, :final_due_date, :start_time, :end_time, 
 								:completed_at, :estimated_hours, :progress, :parent_task_id)`
-
 	result, err := db.NamedExec(query, task)
 	if err != nil {
 		return 0, err
 	}
 	return result.LastInsertId()
+}
+
+func UpdateTask(db *sqlx.DB, task Task) (int64, error) {
+	query := `INSERT INTO tasks ( 
+								task_id,description, status, created_at,updated_at,priority, 
+								assignee_id,do_date,final_due_date,start_time,end_time, 
+								completed_at,estimated_hours,progress,parent_task_id)
+						VALUES ( 
+								task_id, :description, :status, :created_at, :updated_at, :priority,  
+								:assignee_id, :do_date, :final_due_date, :start_time, :end_time, 
+								:completed_at, :estimated_hours, :progress, :parent_task_id)`
+	result, err := db.NamedExec(query, task)
+	if err != nil {
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+
+func UpdateTaskStatus(db *sqlx.DB, task Task) (int64, error) {
+	// 1. Change to UPDATE query
+	query := `UPDATE tasks 
+			  SET status = :status, 
+			      updated_at = :updated_at 
+			  WHERE task_id = :task_id`
+
+	// 2. Use NamedExec to execute the update
+	result, err := db.NamedExec(query, task)
+	if err != nil {
+		return 0, err
+	}
+
+	// 3. Return affected rows (optional, usually 1 if successful)
+	return result.RowsAffected()
 }
