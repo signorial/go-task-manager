@@ -1,17 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/firebase/genkit/go/ai"
-	"github.com/firebase/genkit/go/genkit"
-	"github.com/firebase/genkit/go/plugins/compat_oai"
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite" // import driver for database/sql to use
 )
@@ -46,43 +41,6 @@ func main() {
 	if _, err := tea.NewProgram(initialModel(db)).Run(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func aiConnector() {
-	ctx := context.Background()
-
-	// Initialize Genkit with xAI
-	g := genkit.Init(ctx,
-		genkit.WithPlugins(&compat_oai.OpenAICompatible{
-			Provider: "xai",
-			APIKey:   os.Getenv("XAI_API_KEY"),
-			BaseURL:  "https://api.x.ai/v1",
-		}),
-		genkit.WithDefaultModel("xai/grok-3"),
-	)
-
-	// Define the flow and capture the returned Flow object
-	grokHelloFlow := genkit.DefineFlow(g, "grokHello",
-		func(ctx context.Context, subject string) (string, error) {
-			resp, err := genkit.Generate(ctx, g,
-				ai.WithModelName("xai/grok-3"),
-				ai.WithPrompt(fmt.Sprintf("Tell me a fun fact about %s.", subject)),
-			)
-			if err != nil {
-				return "", err
-			}
-			return resp.Text(), nil
-		},
-	)
-
-	// Run the flow using the .Run() method on the flow object
-	result, err := grokHelloFlow.Run(ctx, "Grok and xAI")
-	if err != nil {
-		log.Fatalf("Error running flow: %v", err)
-	}
-
-	fmt.Println("Response from Grok:")
-	fmt.Println(result)
 }
 
 type model struct {
@@ -176,11 +134,6 @@ func (m model) View() tea.View {
 
 	// apply a global border to the entire view
 	return tea.NewView(borderStyle.Render(s.String()))
-}
-
-// Example functions for each selection
-func aiTaskManager() string {
-	return "✅ All systems operational."
 }
 
 func addTask() string {
