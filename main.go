@@ -136,6 +136,11 @@ func (m model) View() tea.View {
 	return tea.NewView(borderStyle.Render(s.String()))
 }
 
+// Example functions for each selection
+func aiTaskManager() string {
+	return "✅ All systems operational."
+}
+
 func addTask() string {
 	return "📜 Fetching latest logs..."
 }
