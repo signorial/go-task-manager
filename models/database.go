@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"database/sql"
@@ -38,7 +38,7 @@ func StartDatabase() *sqlx.DB {
 	// defer db.Close() // close the database when main() finishes
 }
 
-func listTasks(db *sqlx.DB) ([]Task, error) {
+func DBGetTasks(db *sqlx.DB) ([]Task, error) {
 	var tasks []Task
 	query := `SELECT * FROM tasks`
 	rows, err := db.Query(query) // runs the query and stores the rows in rows variable
@@ -73,17 +73,16 @@ func listTasks(db *sqlx.DB) ([]Task, error) {
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-
 	return tasks, err // Return the completed slice
 }
 
-func DeleteTask(db *sqlx.DB, task_id int64) error {
+func DBDeleteTask(db *sqlx.DB, task_id int64) error {
 	query := `DELETE FROM tasks WHERE task_id = ?`
 	_, err := db.Exec(query, task_id) // runs the query and stores the rows in rows variable
 	return err
 }
 
-func GetTask(db *sqlx.DB, task_id int64) (Task, error) {
+func DBGetTask(db *sqlx.DB, task_id int64) (Task, error) {
 	var t Task
 	query := `SELECT task_id,
 									description, 
@@ -126,7 +125,7 @@ func GetTask(db *sqlx.DB, task_id int64) (Task, error) {
 	return t, nil
 }
 
-func AddTask(db *sqlx.DB, task Task) (int64, error) {
+func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
 	query := `INSERT INTO tasks ( 
 								task_id,description, status, created_at,updated_at,priority, 
 								assignee_id,do_date,final_due_date,start_time,end_time, 
@@ -142,7 +141,7 @@ func AddTask(db *sqlx.DB, task Task) (int64, error) {
 	return result.LastInsertId()
 }
 
-func CompleteTask(db *sqlx.DB, task Task) (int64, error) {
+func DBCompleteTask(db *sqlx.DB, task Task) (int64, error) {
 	query := `UPDATE tasks ( 
 								task_id,description, status, created_at,updated_at,priority, 
 								assignee_id,do_date,final_due_date,start_time,end_time, 
