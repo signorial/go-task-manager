@@ -1,3 +1,15 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/firebase/genkit/go/ai"
+	"github.com/firebase/genkit/go/genkit"
+	"github.com/firebase/genkit/go/plugins/compat_oai"
+)
 
 func AIQuery() {
 	ctx := context.Background()
@@ -30,10 +42,4 @@ func AIQuery() {
 	}
 	fmt.Println("Response from Grok:")
 	fmt.Println(result)
-}
-
-AITaskManager(){
-
-
-
 }
