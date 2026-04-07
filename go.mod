@@ -1,4 +1,4 @@
-module github.com/lufraser/go-task-manager
+module github.com/lufraser/gotaskmanager
 
 go 1.25.3
 
@@ -6,6 +6,7 @@ require (
 	charm.land/bubbletea/v2 v2.0.2
 	charm.land/lipgloss/v2 v2.0.2
 	github.com/firebase/genkit/go v1.5.0
+	github.com/jmoiron/sqlx v1.4.0
 	modernc.org/sqlite v1.48.0
 )
 
@@ -27,7 +28,6 @@ require (
 	github.com/google/dotprompt/go v0.0.0-20251014011017-8d056e027254 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
-	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
