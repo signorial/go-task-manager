@@ -1,7 +1,6 @@
 package functions
 
 import (
-	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -34,24 +33,19 @@ var (
 			Margin(1, 0)
 )
 
-func PrintTasks(db *sqlx.DB) tea.View {
+func PrintTasks(db *sqlx.DB) []models.Task {
 	var s strings.Builder
 	var tasks []models.Task
-	var err error
 	s.WriteString(titleStyle.Render("TASKS"))
 	s.WriteString("\n")
-	tasks, err = models.DBGetTasks(db)
-	for index, tasks := range tasks {
-		// numbering and styling logic
-		label := fmt.Sprintf("%d. %s", i+1, choice)
-		if m.cursor == i {
-			s.WriteString(selectedItemStyle.Render("> " + label))
-		} else {
-			s.WriteString(itemStyle.Render(label))
-		}
+	tasks, _ = models.DBGetTasks(db)
+	for _, task := range tasks {
+		dateStr := task.FinalDueDate.Format("2006-01-02")
+		row := task.TaskID + " " + task.Description + " " + dateStr
+		s.WriteString(selectedItemStyle.Render(row))
 		s.WriteString("\n")
 	}
-	s.WriteString("\n" + lipgloss.NewStyle().Faint(true).Render("j/k: move • enter: select • q: quit"))
 	// apply a global border to the entire view
-	return tea.NewView(borderStyle.Render(s.String()))
+	tea.NewView(borderStyle.Render(s.String()))
+	return tasks
 }
