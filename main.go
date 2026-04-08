@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gotaskmanager/models"
 	"log"
 	"strings"
 
@@ -36,7 +37,7 @@ var (
 )
 
 func main() {
-	db := StartDatabase()
+	db := models.StartDatabase()
 	defer db.Close() // close the database when main() finishes
 	if _, err := tea.NewProgram(initialModel(db)).Run(); err != nil {
 		log.Fatal(err)

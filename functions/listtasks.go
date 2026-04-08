@@ -1,4 +1,4 @@
-package main
+package functions
 
 import (
 	"fmt"
@@ -6,12 +6,13 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/lufraser/gotaskmanager/models"
 	_ "modernc.org/sqlite" // import driver for database/sql to use
 )
 
 func PrintTasks() tea.View {
 	var s strings.Builder
-	var tasks []Task
+	var tasks []models.Task
 	s.WriteString(titleStyle.Render("TASKS"))
 	s.WriteString("\n")
 	tasks = DBGetTasks()
