@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/lufraser/gotaskmanager/models"
@@ -38,6 +40,14 @@ var (
 )
 
 func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelDebug,
+		AddSource: true,
+	}))
+	slog.SetDefault(logger)
+	slog.Info("Task manager started", "version", "1.0.0")
+	slog.Debug("Debug info", "cursor", 3, "screen", "tasks")
+
 	db := models.StartDatabase()
 	defer db.Close() // close the database when main() finishes
 	if _, err := tea.NewProgram(initialModel(db)).Run(); err != nil {
@@ -99,7 +109,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case 2:
 				tasks, err := models.DBGetTasks(m.db)
 				if err != nil {
-					m.selected = "Error fetching records: " + err.Error()
+					slog.Error("failed to fetch tasks", "error", err)
+					m.selected = "Error fetching tasks"
 					m.screen = "menu"
 					return m, nil
 				}
@@ -150,7 +161,6 @@ func (m model) View() tea.View {
 	return tea.NewView(borderStyle.Render(s.String()))
 }
 
-// Better version - returns the rendered content as string
 func RenderTasks(tasks []models.Task) string {
 	var s strings.Builder
 
@@ -164,7 +174,12 @@ func RenderTasks(tasks []models.Task) string {
 	}
 
 	for _, task := range tasks {
-		dateStr := task.FinalDueDate.Format("2006-01-02")
+		var dateStr string
+		if task.FinalDueDate.Valid {
+			dateStr = task.FinalDueDate.Time.Format("2006-01-02")
+		} else {
+			dateStr = ""
+		}
 		row := fmt.Sprintf("%s  %s  %s", task.TaskID, task.Description, dateStr)
 		s.WriteString(selectedItemStyle.Render(row))
 		s.WriteString("\n")

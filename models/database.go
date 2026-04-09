@@ -4,36 +4,54 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite" // the underscore means the functions aren't accessed directly but provides the driver for the database/sql import
 )
 
 type Task struct {
-	TaskID         string    `db:"task_id"`
-	Description    string    `db:"description"`
-	Status         string    `db:"status"`
-	CreatedAt      time.Time `db:"created_at"`
-	UpdatedAt      time.Time `db:"updated_at"`
-	Priority       string    `db:"priority"`
-	AssigneeID     int64     `db:"assignee_id"`
-	DoDate         time.Time `db:"do_date"`
-	FinalDueDate   time.Time `db:"final_due_date"`
-	StartTime      time.Time `db:"start_time"`
-	EndTime        time.Time `db:"end_time"`
-	CompletedAt    time.Time `db:"completed_at"`
-	EstimatedHours float64   `db:"estimated_hours"`
-	Progress       int64     `db:"progress"`
-	ParentTaskID   int64     `db:"parent_task_id"`
+	TaskID         string       `db:"task_id"`
+	Description    string       `db:"description"`
+	Status         string       `db:"status"`
+	CreatedAt      sql.NullTime `db:"created_at"`
+	UpdatedAt      sql.NullTime `db:"updated_at"`
+	Priority       string       `db:"priority"`
+	AssigneeID     int64        `db:"assignee_id"`
+	DoDate         sql.NullTime `db:"do_date"`
+	FinalDueDate   sql.NullTime `db:"final_due_date"`
+	StartTime      sql.NullTime `db:"start_time"`
+	EndTime        sql.NullTime `db:"end_time"`
+	CompletedAt    sql.NullTime `db:"completed_at"`
+	EstimatedHours float64      `db:"estimated_hours"`
+	Progress       int64        `db:"progress"`
+	ParentTaskID   int64        `db:"parent_task_id"`
 }
 
 func StartDatabase() *sqlx.DB {
-	db, err := sqlx.Open("sqlite", "./calendar_sync.db") // connect to the database
+	db, err := sqlx.Open("sqlite", "./calendar_sync.db?_parseTime=true") // connect to the database
 	if err != nil {
 		log.Fatal(err) // exit if connection fails
 	}
+	schema := `
+				CREATE TABLE IF NOT EXISTS tasks (
+					task_id         TEXT PRIMARY KEY,
+					description     TEXT NOT NULL,
+					status          TEXT NOT NULL,
+					created_at      DATETIME,
+					updated_at      DATETIME,
+					priority        TEXT,
+					assignee_id     INTEGER,
+					do_date         DATETIME,
+					final_due_date  DATETIME,
+					start_time      DATETIME,
+					end_time        DATETIME,
+					completed_at    DATETIME,
+					estimated_hours REAL,
+					progress        INTEGER,
+					parent_task_id  INTEGER
+				);`
 
+	db.MustExec(schema)
 	return db
 	// defer db.Close() // close the database when main() finishes
 }

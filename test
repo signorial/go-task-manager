@@ -1,0 +1,17 @@
+CREATE TABLE events (id TEXT PRIMARY KEY, summary TEXT, start_time TEXT, end_time TEXT, raw_data TEXT, sync_status TEXT, task_id INTEGER);
+CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE tasks (task_id TEXT PRIMARY KEY,
+description TEXT, status TEXT,
+created_at TEXT,
+updated_at TEXT, 
+priority TEXT DEFAULT 'Normal'
+    CHECK(priority IN ('Low', 'Normal', 'High', 'Urgent')), assignee_id INTEGER, 
+    do_date DATE, 
+    final_due_date DATE, 
+    start_time DATETIME, 
+    end_time DATETIME, 
+    completed_at DATETIME, 
+    estimated_hours REAL, 
+    progress INTEGER DEFAULT 0
+    CHECK(progress >= 0 AND progress <= 100), parent_task_id INTEGER);q
+
