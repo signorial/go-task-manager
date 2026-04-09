@@ -175,12 +175,20 @@ func RenderTasks(tasks []models.Task) string {
 
 	for _, task := range tasks {
 		var dateStr string
-		if task.FinalDueDate.Valid {
-			dateStr = task.FinalDueDate.Time.Format("2006-01-02")
+		if task.FinalDueDate != nil {
+			dateStr = task.FinalDueDate.Format("2006-01-02")
 		} else {
 			dateStr = ""
 		}
-		row := fmt.Sprintf("%s  %s  %s", task.TaskID, task.Description, dateStr)
+
+		var TaskIDStr string
+		if task.TaskID != nil {
+			TaskIDStr = fmt.Sprintf("%d", *task.TaskID)
+		} else {
+			TaskIDStr = ""
+		}
+
+		row := fmt.Sprintf("%s  %s  %s", TaskIDStr, task.Description, dateStr)
 		s.WriteString(selectedItemStyle.Render(row))
 		s.WriteString("\n")
 	}

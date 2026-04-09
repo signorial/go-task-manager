@@ -4,27 +4,28 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite" // the underscore means the functions aren't accessed directly but provides the driver for the database/sql import
 )
 
 type Task struct {
-	TaskID         string       `db:"task_id"`
-	Description    string       `db:"description"`
-	Status         string       `db:"status"`
-	CreatedAt      sql.NullTime `db:"created_at"`
-	UpdatedAt      sql.NullTime `db:"updated_at"`
-	Priority       string       `db:"priority"`
-	AssigneeID     int64        `db:"assignee_id"`
-	DoDate         sql.NullTime `db:"do_date"`
-	FinalDueDate   sql.NullTime `db:"final_due_date"`
-	StartTime      sql.NullTime `db:"start_time"`
-	EndTime        sql.NullTime `db:"end_time"`
-	CompletedAt    sql.NullTime `db:"completed_at"`
-	EstimatedHours float64      `db:"estimated_hours"`
-	Progress       int64        `db:"progress"`
-	ParentTaskID   int64        `db:"parent_task_id"`
+	TaskID         *int64     `db:"task_id"`
+	Description    string     `db:"description"`
+	Status         string     `db:"status"`
+	CreatedAt      *time.Time `db:"created_at"`
+	UpdatedAt      *time.Time `db:"updated_at"`
+	Priority       string     `db:"priority"`
+	AssigneeID     *int64     `db:"assignee_id"`
+	DoDate         *time.Time `db:"do_date"`
+	FinalDueDate   *time.Time `db:"final_due_date"`
+	StartTime      *time.Time `db:"start_time"`
+	EndTime        *time.Time `db:"end_time"`
+	CompletedAt    *time.Time `db:"completed_at"`
+	EstimatedHours *float64   `db:"estimated_hours"`
+	Progress       *int64     `db:"progress"`
+	ParentTaskID   *int64     `db:"parent_task_id"`
 }
 
 func StartDatabase() *sqlx.DB {
@@ -34,7 +35,7 @@ func StartDatabase() *sqlx.DB {
 	}
 	schema := `
 				CREATE TABLE IF NOT EXISTS tasks (
-					task_id         TEXT PRIMARY KEY,
+					task_id         INTEGER PRIMARY KEY,
 					description     TEXT NOT NULL,
 					status          TEXT NOT NULL,
 					created_at      DATETIME,
