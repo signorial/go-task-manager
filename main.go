@@ -9,6 +9,7 @@ import (
 
 	"github.com/lufraser/gotaskmanager/models"
 
+	"charm.land/bubbles/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/jmoiron/sqlx"
@@ -62,6 +63,7 @@ type model struct {
 	selected string
 	screen   string
 	tasks    []models.Task
+	TaskID   int64
 }
 
 func initialModel(db *sqlx.DB) model {
@@ -121,11 +123,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case 3:
 				m.selected = completeTask()
 			case 4:
-				err := models.DBDeleteTask(m.db, 123)
+				ti := textinput.New()
+				ti.Placeholder("Enter Customer #")
+				ti.Focus()
+				err := models.DBDeleteTask(m.db, ti.Value())
 				if err != nil {
-					m.selected = fmt.Sprintf("couldn't find task")
-				} else {
-					m.selected = fmt.Sprintf("Deleted Task: %s", "123")
+					m.selected = fmt.Sprintf("couldn't find task %d",ti.Value())
+					m.screen = "menu" 
+					return m,nil
+				} 
+				m.tasks	
+				m.selected = fmt.Sprintf("Deleted Task: %d", ti.Value())
+
 				}
 			}
 		}
@@ -163,16 +172,13 @@ func (m model) View() tea.View {
 
 func RenderTasks(tasks []models.Task) string {
 	var s strings.Builder
-
 	s.WriteString(titleStyle.Render("TASKS"))
 	s.WriteString("\n\n")
-
 	if len(tasks) == 0 {
 		s.WriteString(itemStyle.Render("No tasks found."))
 		s.WriteString("\n")
 		return s.String()
 	}
-
 	for _, task := range tasks {
 		var dateStr string
 		if task.FinalDueDate != nil {
@@ -180,22 +186,48 @@ func RenderTasks(tasks []models.Task) string {
 		} else {
 			dateStr = ""
 		}
-
 		var TaskIDStr string
 		if task.TaskID != nil {
 			TaskIDStr = fmt.Sprintf("%d", *task.TaskID)
 		} else {
 			TaskIDStr = ""
 		}
-
 		row := fmt.Sprintf("%s  %s  %s", TaskIDStr, task.Description, dateStr)
 		s.WriteString(selectedItemStyle.Render(row))
 		s.WriteString("\n")
 	}
-
 	return s.String()
 }
 
+
+func RenderDelete(tasks []models.Task) string {
+	var s strings.Builder
+	s.WriteString(titleStyle.Render("TASKS"))
+	s.WriteString("\n\n")
+	if len(tasks) == 0 {
+		s.WriteString(itemStyle.Render("No tasks found."))
+		s.WriteString("\n")
+		return s.String()
+	}
+	for _, task := range tasks {
+		var dateStr string
+		if task.FinalDueDate != nil {
+			dateStr = task.FinalDueDate.Format("2006-01-02")
+		} else {
+			dateStr = ""
+		}
+		var TaskIDStr string
+		if task.TaskID != nil {
+			TaskIDStr = fmt.Sprintf("%d", *task.TaskID)
+		} else {
+			TaskIDStr = ""
+		}
+		row := fmt.Sprintf("%s  %s  %s", TaskIDStr, task.Description, dateStr)
+		s.WriteString(selectedItemStyle.Render(row))
+		s.WriteString("\n")
+	}
+	return s.String()
+}
 // Example functions for each selection
 func aiTaskManager() string {
 	return "✅ All systems operational."

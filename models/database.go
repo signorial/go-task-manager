@@ -95,13 +95,13 @@ func DBGetTasks(db *sqlx.DB) ([]Task, error) {
 	return tasks, err // Return the completed slice
 }
 
-func DBDeleteTask(db *sqlx.DB, task_id int64) error {
+func DBDeleteTask(db *sqlx.DB, taskID int64) error {
 	query := `DELETE FROM tasks WHERE task_id = ?`
-	_, err := db.Exec(query, task_id) // runs the query and stores the rows in rows variable
+	_, err := db.Exec(query, taskID)
 	return err
 }
 
-func DBGetTask(db *sqlx.DB, task_id int64) (Task, error) {
+func DBGetTask(db *sqlx.DB, taskID int64) (Task, error) {
 	var t Task
 	query := `SELECT task_id,
 									description, 
@@ -119,7 +119,7 @@ func DBGetTask(db *sqlx.DB, task_id int64) (Task, error) {
 									progress, 
 									parent_task_id 
 						FROM tasks WHERE task_id = ?`
-	err := db.QueryRow(query, task_id).Scan(
+	err := db.QueryRow(query, taskID).Scan(
 		&t.TaskID,
 		&t.Description,
 		&t.Status,
@@ -137,7 +137,7 @@ func DBGetTask(db *sqlx.DB, task_id int64) (Task, error) {
 		&t.ParentTaskID) // runs the query and stores the rows in rows variable
 	if err != nil {
 		if err == sql.ErrNoRows { // if error is because the row isn't found
-			return t, fmt.Errorf("task with task_id %d not found", task_id) // returns row missing error
+			return t, fmt.Errorf("task with task_id %d not found", taskID) // returns row missing error
 		}
 		return t, err // any other database error
 	}
@@ -152,7 +152,7 @@ func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
 						VALUES ( 
 								task_id, :description, :status, :created_at, :updated_at, :priority,  
 								:assignee_id, :do_date, :final_due_date, :start_time, :end_time, 
-								:completed_at, :estimated_hours, :progress, :parent_task_id)`
+	:completed_at, :estimated_hours, :progress, :parent_task_id)`
 	result, err := db.NamedExec(query, task)
 	if err != nil {
 		return 0, err
