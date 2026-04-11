@@ -35,7 +35,7 @@ func StartDatabase() *sqlx.DB {
 	}
 	schema := `
 				CREATE TABLE IF NOT EXISTS tasks (
-					task_id         INTEGER PRIMARY KEY,
+					task_id         TEXT PRIMARY KEY,
 					description     TEXT NOT NULL,
 					status          TEXT NOT NULL,
 					created_at      DATETIME,
