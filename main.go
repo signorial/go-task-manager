@@ -64,6 +64,7 @@ type model struct {
 	screen   string
 	tasks    []models.Task
 	TaskID   int64
+	textInput string
 }
 
 func initialModel(db *sqlx.DB) model {
@@ -83,6 +84,28 @@ func initialModel(db *sqlx.DB) model {
 func (m model) Init() tea.Cmd { return nil }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.screen == "delete"{
+		switch msg := msg.(type){
+		case "esc":
+			m.screen = "menu"
+			return m, nil
+		case "enter":
+			taskID := m.textInput.Value()
+			err := models.DBDeleteTask(db, taskID) 
+			if err != nil{
+				m.selected = fmt.Sprintf("Error: %s", taskID)
+			}else{
+				m.selected = fmt.Sprintf("Deleted Task: %s",taskID)
+			}
+		m.screen = "menu"
+		m.textInput.Reset() //clear for next time
+		return m, nil
+		}
+	}
+
+
+
+
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
@@ -134,7 +157,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} 
 				m.tasks	
 				m.selected = fmt.Sprintf("Deleted Task: %d", ti.Value())
-
+				return m, nil
 				}
 			}
 		}
@@ -165,6 +188,8 @@ func (m model) View() tea.View {
 		}
 		s.WriteString("\n")
 		s.WriteString("\n" + lipgloss.NewStyle().Faint(true).Render("j/k: move • enter: select • q: quit"))
+	case "delete":
+		
 	}
 	// apply a global border to the entire view
 	return tea.NewView(borderStyle.Render(s.String()))
