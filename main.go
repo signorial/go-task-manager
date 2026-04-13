@@ -5,11 +5,12 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/lufraser/gotaskmanager/models"
 
-	"charm.land/bubbles/textinput"
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/jmoiron/sqlx"
@@ -35,42 +36,36 @@ var (
 			BorderForeground(lipgloss.Color("#874BFD")).
 			Padding(1, 3).
 			Margin(1, 0)
-	chevronStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00EAD3")).
-			Bold(true)
+	faintStyle = lipgloss.NewStyle().Faint(true)
 )
 
-func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     slog.LevelDebug,
-		AddSource: true,
-	}))
-	slog.SetDefault(logger)
-	slog.Info("Task manager started", "version", "1.0.0")
-	slog.Debug("Debug info", "cursor", 3, "screen", "tasks")
+type screen string
 
-	db := models.StartDatabase()
-	defer db.Close() // close the database when main() finishes
-	if _, err := tea.NewProgram(initialModel(db)).Run(); err != nil {
-		log.Fatal(err)
-	}
-}
+const (
+	screenMenu   screen = "menu"
+	screenTasks  screen = "tasks"
+	screenDelete screen = "delete"
+)
 
 type model struct {
-	db       *sqlx.DB
-	cursor   int
-	choices  []string
-	selected string
-	screen   string
-	tasks    []models.Task
-	TaskID   int64
-	textInput string
+	db        *sqlx.DB
+	cursor    int
+	choices   []string
+	selected  string
+	screen    screen
+	tasks     []models.Task
+	TaskID    int64
+	textInput textinput.Model
 }
 
 func initialModel(db *sqlx.DB) model {
+	ti := textinput.New()
+	ti.Placholder = "Enter Task ID"
+	ti.CharLimit = 10
+
 	return model{
 		db:     db,
-		screen: "menu",
+		screen: screenMenu,
 		choices: []string{
 			"AI Task Manager",
 			"Add Task",
@@ -78,88 +73,89 @@ func initialModel(db *sqlx.DB) model {
 			"Complete Task",
 			"Delete Task",
 		},
+		textInput: ti,
 	}
 }
 
 func (m model) Init() tea.Cmd { return nil }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if m.screen == "delete"{
-		switch msg := msg.(type){
-		case "esc":
-			m.screen = "menu"
-			return m, nil
-		case "enter":
-			taskID := m.textInput.Value()
-			err := models.DBDeleteTask(db, taskID) 
-			if err != nil{
-				m.selected = fmt.Sprintf("Error: %s", taskID)
-			}else{
-				m.selected = fmt.Sprintf("Deleted Task: %s",taskID)
-			}
-		m.screen = "menu"
-		m.textInput.Reset() //clear for next time
-		return m, nil
-		}
-	}
-
-
-
-
+	var cmd tea.Cmd
+	// main menu
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "up", "k":
-			if m.cursor > 0 {
+			if m.screen == screenMenu && m.cursor > 0 {
 				m.cursor--
 			}
 		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
+			if m.screen == screenMenu && m.cursor < len(m.choices)-1 {
 				m.cursor++
 			}
 		case "b", "esc":
-			if m.screen == "tasks" {
-				m.screen = "menu"
+			if m.screen != screenMenu {
+				m.screen = screenMenu
+				m.textInput.Blur()
 				return m, nil
 			}
 		case "enter":
 			// call the appropriate function based on initialModel
-			switch m.cursor {
-			case 0:
-				m.selected = aiTaskManager()
-			case 1:
-				m.selected = addTask()
-			case 2:
-				tasks, err := models.DBGetTasks(m.db)
-				if err != nil {
-					slog.Error("failed to fetch tasks", "error", err)
-					m.selected = "Error fetching tasks"
-					m.screen = "menu"
-					return m, nil
+			switch m.screen {
+			case screenMenu:
+				switch m.cursor {
+				case 0: // AI task manager
+					m.selected = aiTaskManager()
+					m.screen = screenMenu
+				case 1: // Add task
+					m.selected = addTask()
+					m.screen = screenMenu
+				case 2: // List tasks
+					tasks, err := models.DBGetTasks(m.db)
+					if err != nil {
+						slog.Error("failed to fetch tasks", "error", err)
+						m.selected = "Error fetching tasks"
+					} else {
+						m.tasks = tasks
+						m.selected = ""
+					}
+					m.screen = screenTasks
+				case 3: // Complete Task
+					m.selected = completeTask()
+					m.screen = screenMenu
+				case 4: // Delete task
+					m.screen = screenDelete
+					m.textInput.Focus()
+					m.textInput.setValue("")
+					return m, m.textInput.Blink
 				}
-				m.tasks = tasks
-				m.screen = "tasks"
-				m.selected = ""
-				return m, nil
-			case 3:
-				m.selected = completeTask()
-			case 4:
-				ti := textinput.New()
-				ti.Placeholder("Enter Customer #")
-				ti.Focus()
-				err := models.DBDeleteTask(m.db, ti.Value())
-				if err != nil {
-					m.selected = fmt.Sprintf("couldn't find task %d",ti.Value())
-					m.screen = "menu" 
-					return m,nil
-				} 
-				m.tasks	
-				m.selected = fmt.Sprintf("Deleted Task: %d", ti.Value())
-				return m, nil
+			case screenDelete:
+				taskIDStr := strings.TrimSpace(m.textInput.Value())
+				if taskIDStr == "" {
+					m.selected = "Error: Task ID cannot be empty"
+				} else {
+					taskIDint, err := strconv.ParseInt(taskIDStr, 10, 64)
+					if err != nil {
+						err := models.DBDeleteTask(m.db, taskIDint) // assuming it accepts string or int
+						if err != nil {
+							m.selected = fmt.Sprintf("Error deleting task %s: %v", taskIDStr, err)
+						} else {
+							m.selected = fmt.Sprintf("✅ Deleted task %s", taskIDStr)
+						}
+					}
 				}
+				m.screen = screenMenu
+				m.textInput.Blur()
+				m.textInput.Reset()
+				return m, nil
 			}
+		}
+		// Handle text input updates when on delete screen
+		if m.screen == screenDelete {
+			m.textInput, cmd = m.textInput.Update(msg)
+			return m, cmd
 		}
 	}
 	return m, nil
@@ -168,11 +164,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() tea.View {
 	var s strings.Builder
 	switch m.screen {
-	case "tasks":
-		content := RenderTasks(m.tasks)
-		s.WriteString(content)
+	case screenTasks:
+		s.WriteString(RenderTasks(m.tasks))
 		s.WriteString("\n\n")
-		s.WriteString(lipgloss.NewStyle().Faint(true).Render("Press 'b' or 'esc' to go back to menu"))
+		s.WriteString(faintStyle.Render("Press 'b' or 'esc' to go back to menu"))
+	case screenDelete:
+		s.WriteString(titleStyle.Render("DELETE TASK"))
+		s.WriteString("\n\n")
+		s.WriteString("Enter Task ID to delete:\n")
+
+		s.WriteString("\n\n")
+		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: confirm * esc: cancel"))
 	default: // menu
 		s.WriteString(titleStyle.Render("TASK MANAGER"))
 		s.WriteString("\n")
@@ -188,8 +190,6 @@ func (m model) View() tea.View {
 		}
 		s.WriteString("\n")
 		s.WriteString("\n" + lipgloss.NewStyle().Faint(true).Render("j/k: move • enter: select • q: quit"))
-	case "delete":
-		
 	}
 	// apply a global border to the entire view
 	return tea.NewView(borderStyle.Render(s.String()))
@@ -199,6 +199,7 @@ func RenderTasks(tasks []models.Task) string {
 	var s strings.Builder
 	s.WriteString(titleStyle.Render("TASKS"))
 	s.WriteString("\n\n")
+
 	if len(tasks) == 0 {
 		s.WriteString(itemStyle.Render("No tasks found."))
 		s.WriteString("\n")
@@ -224,35 +225,6 @@ func RenderTasks(tasks []models.Task) string {
 	return s.String()
 }
 
-
-func RenderDelete(tasks []models.Task) string {
-	var s strings.Builder
-	s.WriteString(titleStyle.Render("TASKS"))
-	s.WriteString("\n\n")
-	if len(tasks) == 0 {
-		s.WriteString(itemStyle.Render("No tasks found."))
-		s.WriteString("\n")
-		return s.String()
-	}
-	for _, task := range tasks {
-		var dateStr string
-		if task.FinalDueDate != nil {
-			dateStr = task.FinalDueDate.Format("2006-01-02")
-		} else {
-			dateStr = ""
-		}
-		var TaskIDStr string
-		if task.TaskID != nil {
-			TaskIDStr = fmt.Sprintf("%d", *task.TaskID)
-		} else {
-			TaskIDStr = ""
-		}
-		row := fmt.Sprintf("%s  %s  %s", TaskIDStr, task.Description, dateStr)
-		s.WriteString(selectedItemStyle.Render(row))
-		s.WriteString("\n")
-	}
-	return s.String()
-}
 // Example functions for each selection
 func aiTaskManager() string {
 	return "✅ All systems operational."
@@ -268,4 +240,20 @@ func completeTask() string {
 
 func exitProgram() string {
 	return "⚙️ Loading configuration..."
+}
+
+func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelDebug,
+		AddSource: true,
+	}))
+	slog.SetDefault(logger)
+	slog.Info("Task manager started", "version", "1.0.0")
+	slog.Debug("Debug info", "cursor", 3, "screen", "tasks")
+
+	db := models.StartDatabase()
+	defer db.Close() // close the database when main() finishes
+	if _, err := tea.NewProgram(initialModel(db)).Run(); err != nil {
+		log.Fatal(err)
+	}
 }
