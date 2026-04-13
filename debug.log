@@ -1,0 +1,53 @@
+time=2026-04-13T11:52:08.378-06:00 level=INFO source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:263 msg="Task manager started" version=1.0.0
+time=2026-04-13T11:52:08.378-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:264 msg="Debug info" cursor=3 screen=tasks
+time=2026-04-13T11:53:14.352-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:141 msg="entering delete case"
+time=2026-04-13T13:02:19.517-06:00 level=INFO source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:263 msg="Task manager started" version=1.0.0
+time=2026-04-13T13:02:19.517-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:264 msg="Debug info" cursor=3 screen=tasks
+time=2026-04-13T13:02:32.203-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:141 msg="entering delete case"
+time=2026-04-13T13:04:14.062-06:00 level=INFO source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:263 msg="Task manager started" version=1.0.0
+time=2026-04-13T13:04:14.062-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:264 msg="Debug info" cursor=3 screen=tasks
+time=2026-04-13T13:05:18.705-06:00 level=INFO source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:263 msg="Task manager started" version=1.0.0
+time=2026-04-13T13:05:18.705-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:264 msg="Debug info" cursor=3 screen=tasks
+time=2026-04-13T13:05:32.775-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:141 msg="entering delete case"
+time=2026-04-13T13:06:56.954-06:00 level=INFO source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:264 msg="Task manager started" version=1.0.0
+time=2026-04-13T13:06:56.954-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:265 msg="Debug info" cursor=3 screen=tasks
+time=2026-04-13T13:07:05.353-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:05.884-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:06.415-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:06.946-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:07.477-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:08.008-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:08.043-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:08.043-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:08.562-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:08.562-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:08.913-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:08.913-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:09.444-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:09.975-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:10.455-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:07:10.455-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:141 msg="entering delete case"
+time=2026-04-13T13:10:52.237-06:00 level=INFO source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:267 msg="Task manager started" version=1.0.0
+time=2026-04-13T13:10:52.237-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:268 msg="Debug info" cursor=3 screen=tasks
+time=2026-04-13T13:10:57.688-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:10:58.219-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:10:58.682-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:10:58.682-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:10:59.213-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:10:59.247-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:10:59.247-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:10:59.650-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:10:59.650-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:11:00.181-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:11:00.711-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:11:01.242-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:11:01.773-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:11:02.289-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:86 msg="detected delete screen and runs textInput update"
+time=2026-04-13T13:11:02.289-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:141 msg="entering delete case"
+time=2026-04-13T13:11:02.289-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:151 msg=debug !BADKEY="running delete task"
+time=2026-04-13T13:11:02.289-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/models/database.go:100 msg="Entering DBDeleteTask"
+time=2026-04-13T13:11:02.289-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/models/database.go:101 msg="taskID: %d" !BADKEY=101
+time=2026-04-13T13:11:02.312-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/models/database.go:105 msg="delete action completed successfully"
+time=2026-04-13T13:11:02.312-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/models/database.go:107 msg="completed error %s" !BADKEY=<nil>
+time=2026-04-13T13:12:41.590-06:00 level=INFO source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:267 msg="Task manager started" version=1.0.0
+time=2026-04-13T13:12:41.590-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:268 msg="Debug info" cursor=3 screen=tasks

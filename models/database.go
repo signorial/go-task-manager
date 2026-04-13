@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -96,8 +97,14 @@ func DBGetTasks(db *sqlx.DB) ([]Task, error) {
 }
 
 func DBDeleteTask(db *sqlx.DB, taskID int64) error {
+	slog.Debug("Entering DBDeleteTask")
+	slog.Debug("taskID: %d", taskID)
 	query := `DELETE FROM tasks WHERE task_id = ?`
 	_, err := db.Exec(query, taskID)
+	if err == nil {
+		slog.Debug("delete action completed successfully")
+	}
+	slog.Debug("completed error %s", err)
 	return err
 }
 

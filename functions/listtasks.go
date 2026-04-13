@@ -1,6 +1,7 @@
 package functions
 
 import (
+	"strconv"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -41,7 +42,9 @@ func PrintTasks(db *sqlx.DB) []models.Task {
 	tasks, _ = models.DBGetTasks(db)
 	for _, task := range tasks {
 		dateStr := task.FinalDueDate.Format("2006-01-02")
-		row := task.TaskID + " " + task.Description + " " + dateStr
+		idstr := ""
+		idstr = strconv.FormatInt(*task.TaskID, 10)
+		row := idstr + " " + task.Description + " " + dateStr
 		s.WriteString(selectedItemStyle.Render(row))
 		s.WriteString("\n")
 	}

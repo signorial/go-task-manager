@@ -60,7 +60,7 @@ type model struct {
 
 func initialModel(db *sqlx.DB) model {
 	ti := textinput.New()
-	ti.Placholder = "Enter Task ID"
+	ti.Placeholder = "Enter Task ID"
 	ti.CharLimit = 10
 
 	return model{
@@ -81,6 +81,12 @@ func (m model) Init() tea.Cmd { return nil }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+	// Handle text input updates when on delete screen
+	if m.screen == screenDelete {
+		slog.Debug("detected delete screen and runs textInput update")
+		m.textInput, cmd = m.textInput.Update(msg)
+	}
+
 	// main menu
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
@@ -115,7 +121,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case 2: // List tasks
 					tasks, err := models.DBGetTasks(m.db)
 					if err != nil {
-						slog.Error("failed to fetch tasks", "error", err)
+						slog.Debug("failed to fetch tasks")
 						m.selected = "Error fetching tasks"
 					} else {
 						m.tasks = tasks
@@ -128,18 +134,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case 4: // Delete task
 					m.screen = screenDelete
 					m.textInput.Focus()
-					m.textInput.setValue("")
-					return m, m.textInput.Blink
+					m.textInput.SetValue("")
+					return m, textinput.Blink
 				}
 			case screenDelete:
+				slog.Debug("entering delete case")
 				taskIDStr := strings.TrimSpace(m.textInput.Value())
 				if taskIDStr == "" {
 					m.selected = "Error: Task ID cannot be empty"
+					slog.Debug("error: taskID cannot be empty")
 				} else {
 					taskIDint, err := strconv.ParseInt(taskIDStr, 10, 64)
 					if err != nil {
+						m.selected = "Error: Task ID cannot be empty"
+					} else {
+						slog.Debug("running delete task")
 						err := models.DBDeleteTask(m.db, taskIDint) // assuming it accepts string or int
 						if err != nil {
+							slog.Debug("Error deleting task")
 							m.selected = fmt.Sprintf("Error deleting task %s: %v", taskIDStr, err)
 						} else {
 							m.selected = fmt.Sprintf("✅ Deleted task %s", taskIDStr)
@@ -152,13 +164,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
-		// Handle text input updates when on delete screen
-		if m.screen == screenDelete {
-			m.textInput, cmd = m.textInput.Update(msg)
-			return m, cmd
-		}
 	}
-	return m, nil
+	return m, cmd
 }
 
 func (m model) View() tea.View {
@@ -172,7 +179,8 @@ func (m model) View() tea.View {
 		s.WriteString(titleStyle.Render("DELETE TASK"))
 		s.WriteString("\n\n")
 		s.WriteString("Enter Task ID to delete:\n")
-
+		s.WriteString("\n\n")
+		s.WriteString(m.textInput.View())
 		s.WriteString("\n\n")
 		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: confirm * esc: cancel"))
 	default: // menu
@@ -243,7 +251,15 @@ func exitProgram() string {
 }
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	// Open (or create) a log file
+	// tail -f debug.log to see the log in real time in another terminal
+	logFile, err := os.OpenFile("debug.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
+	if err != nil {
+		log.Fatal("Failed to open log file:", err)
+	}
+	defer logFile.Close()
+
+	logger := slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{
 		Level:     slog.LevelDebug,
 		AddSource: true,
 	}))
