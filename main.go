@@ -42,9 +42,10 @@ var (
 type screen string
 
 const (
-	screenMenu   screen = "menu"
-	screenTasks  screen = "tasks"
-	screenDelete screen = "delete"
+	screenMenu     screen = "menu"
+	screenTasks    screen = "tasks"
+	screenDelete   screen = "delete"
+	screenComplete screen = "complete"
 )
 
 type model struct {
@@ -84,6 +85,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle text input updates when on delete screen
 	if m.screen == screenDelete {
 		slog.Debug("detected delete screen and runs textInput update")
+		m.textInput, cmd = m.textInput.Update(msg)
+	}
+	// Handle text input updates when on delete screen
+	if m.screen == screenComplete {
+		slog.Debug("detected complete screen and runs textInput update")
 		m.textInput, cmd = m.textInput.Update(msg)
 	}
 
@@ -129,8 +135,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					m.screen = screenTasks
 				case 3: // Complete Task
-					m.selected = completeTask()
-					m.screen = screenMenu
+					m.screen = screenComplete
+					m.textInput.Focus()
+					m.textInput.SetValue("")
+					return m, textinput.Blink
 				case 4: // Delete task
 					m.screen = screenDelete
 					m.textInput.Focus()
@@ -162,6 +170,31 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textInput.Blur()
 				m.textInput.Reset()
 				return m, nil
+			case screenComplete:
+				slog.Debug("entering complete case")
+				taskIDStr := strings.TrimSpace(m.textInput.Value())
+				if taskIDStr == "" {
+					m.selected = "Error: Task ID cannot be empty"
+					slog.Debug("error: taskID cannot be empty")
+				} else {
+					taskIDint, err := strconv.ParseInt(taskIDStr, 10, 64)
+					if err != nil {
+						m.selected = "Error: Task ID cannot be empty"
+					} else {
+						slog.Debug("running complete task")
+						err := models.DBCompleteTask(m.db, taskIDint) // assuming it accepts string or int
+						if err != nil {
+							slog.Debug("Error completing task")
+							m.selected = fmt.Sprintf("Error marking task complete %s: %v", taskIDStr, err)
+						} else {
+							m.selected = fmt.Sprintf("✅ marked task complete %s", taskIDStr)
+						}
+					}
+				}
+				m.screen = screenMenu
+				m.textInput.Blur()
+				m.textInput.Reset()
+				return m, nil
 			}
 		}
 	}
@@ -175,6 +208,14 @@ func (m model) View() tea.View {
 		s.WriteString(RenderTasks(m.tasks))
 		s.WriteString("\n\n")
 		s.WriteString(faintStyle.Render("Press 'b' or 'esc' to go back to menu"))
+	case screenComplete:
+		s.WriteString(titleStyle.Render("COMPLETE TASK"))
+		s.WriteString("\n\n")
+		s.WriteString("Enter Task ID to mark complete:\n")
+		s.WriteString("\n\n")
+		s.WriteString(m.textInput.View())
+		s.WriteString("\n\n")
+		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: confirm esc: cancel"))
 	case screenDelete:
 		s.WriteString(titleStyle.Render("DELETE TASK"))
 		s.WriteString("\n\n")
@@ -182,7 +223,7 @@ func (m model) View() tea.View {
 		s.WriteString("\n\n")
 		s.WriteString(m.textInput.View())
 		s.WriteString("\n\n")
-		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: confirm * esc: cancel"))
+		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: confirm esc: cancel"))
 	default: // menu
 		s.WriteString(titleStyle.Render("TASK MANAGER"))
 		s.WriteString("\n")
@@ -226,7 +267,7 @@ func RenderTasks(tasks []models.Task) string {
 		} else {
 			TaskIDStr = ""
 		}
-		row := fmt.Sprintf("%s  %s  %s", TaskIDStr, task.Description, dateStr)
+		row := fmt.Sprintf("%s  %s  %s  %s", TaskIDStr, task.Status, task.Description, dateStr)
 		s.WriteString(selectedItemStyle.Render(row))
 		s.WriteString("\n")
 	}
@@ -240,10 +281,6 @@ func aiTaskManager() string {
 
 func addTask() string {
 	return "📜 Fetching latest logs..."
-}
-
-func completeTask() string {
-	return "👥 Opening user directory..."
 }
 
 func exitProgram() string {

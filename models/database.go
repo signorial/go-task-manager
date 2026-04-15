@@ -157,9 +157,9 @@ func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
 								assignee_id,do_date,final_due_date,start_time,end_time, 
 								completed_at,estimated_hours,progress,parent_task_id)
 						VALUES ( 
-								task_id, :description, :status, :created_at, :updated_at, :priority,  
-								:assignee_id, :do_date, :final_due_date, :start_time, :end_time, 
-	:completed_at, :estimated_hours, :progress, :parent_task_id)`
+								NULL, :description, :status, :createdAt, :updatedAt, :priority,  
+								:AssigneeID, :DoDate, :FinalDueDate, :StartTime, :EndTime, 
+								:CompletedAt, :EstimatedHours, :progress, :ParentTaskID)`
 	result, err := db.NamedExec(query, task)
 	if err != nil {
 		return 0, err
@@ -167,18 +167,16 @@ func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
 	return result.LastInsertId()
 }
 
-func DBCompleteTask(db *sqlx.DB, task Task) (int64, error) {
-	query := `UPDATE tasks ( 
-								task_id,description, status, created_at,updated_at,priority, 
-								assignee_id,do_date,final_due_date,start_time,end_time, 
-								completed_at,estimated_hours,progress,parent_task_id)
-						VALUES ( 
-								task_id, :description, :status, :created_at, :updated_at, :priority,  
-								:assignee_id, :do_date, :final_due_date, :start_time, :end_time, 
-								:completed_at, :estimated_hours, :progress, :parent_task_id)`
-	result, err := db.NamedExec(query, task)
+func DBCompleteTask(db *sqlx.DB, taskID int64) error {
+	slog.Debug("Entering DBCompleteTask")
+	slog.Debug("taskID: %d", taskID)
+	query := `UPDATE tasks 
+								SET status = "COMPLETED" 
+								WHERE task_id = ?`
+	_, err := db.Exec(query, taskID)
+	slog.Debug("error: %d", err)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	return result.LastInsertId()
+	return nil
 }
