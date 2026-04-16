@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lufraser/gotaskmanager/models"
-
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/jmoiron/sqlx"
+	"github.com/lufraser/gotaskmanager/models"
 	_ "modernc.org/sqlite" // import driver for database/sql to use
 )
 
@@ -46,15 +46,18 @@ const (
 	screenTasks    screen = "tasks"
 	screenDelete   screen = "delete"
 	screenComplete screen = "complete"
+	screenAddTask  screen = "addtask"
 )
 
 type model struct {
 	db        *sqlx.DB
+	form      *huh.Form
 	cursor    int
 	choices   []string
 	selected  string
 	screen    screen
 	tasks     []models.Task
+	task      models.Task
 	TaskID    int64
 	textInput textinput.Model
 }
@@ -78,7 +81,12 @@ func initialModel(db *sqlx.DB) model {
 	}
 }
 
-func (m model) Init() tea.Cmd { return nil }
+func (m model) Init() tea.Cmd {
+	if m.screen == screenAddTask && m.form != nil {
+		return m.form.Init()
+	}
+	return nil
+}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
@@ -91,6 +99,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.screen == screenComplete {
 		slog.Debug("detected complete screen and runs textInput update")
 		m.textInput, cmd = m.textInput.Update(msg)
+	}
+
+	if m.screen == screenAddTask && m.form != nil {
+		var formCmd tea.Cmd
+		updatedForm, formCmd := m.form.Update(msg)
+		if f, ok := updatedForm.(*huh.Form); ok {
+			m.form = f
+		} else {
+			if f2, ok := updatedForm.(huh.Model); ok {
+				if formPtr, ok := any(f2).(*huh.Form); ok {
+					m.form = formPtr
+				}
+			}
+		}
+
+		if m.form.State == huh.StateCompleted {
+			// save the task
+			if _, err := models.DBAddTask(m.db, m.task); err != nil {
+				m.selected = fmt.Sprintf("Error saving task: %v", err)
+			} else {
+				m.selected = "Task added successfully!"
+			}
+			// clean up ango back to main menu
+			m.form = nil
+			m.screen = screenMenu
+			return m, nil
+		}
+		// If user aborted (esc / ctrl+c inside form)
+		if m.form.State == huh.StateAborted {
+			m.selected = "Task addition cancelled"
+			m.form = nil
+			m.screen = screenMenu
+			return m, nil
+		}
+		return m, formCmd
 	}
 
 	// main menu
@@ -119,11 +162,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case screenMenu:
 				switch m.cursor {
 				case 0: // AI task manager
-					m.selected = aiTaskManager()
+					// m.selected = aiTaskManager()
 					m.screen = screenMenu
 				case 1: // Add task
-					m.selected = addTask()
-					m.screen = screenMenu
+					m.screen = screenAddTask
+					cmd := m.initaddTaskForm()
+					return m, cmd
 				case 2: // List tasks
 					tasks, err := models.DBGetTasks(m.db)
 					if err != nil {
@@ -208,6 +252,14 @@ func (m model) View() tea.View {
 		s.WriteString(RenderTasks(m.tasks))
 		s.WriteString("\n\n")
 		s.WriteString(faintStyle.Render("Press 'b' or 'esc' to go back to menu"))
+	case screenAddTask:
+		if m.form != nil {
+			s.WriteString(titleStyle.Render("ADD NEW TASK"))
+			s.WriteString("\n\n")
+			s.WriteString(m.form.View()) // ← render the huh form
+		} else {
+			s.WriteString("Loading form...")
+		}
 	case screenComplete:
 		s.WriteString(titleStyle.Render("COMPLETE TASK"))
 		s.WriteString("\n\n")
@@ -274,17 +326,47 @@ func RenderTasks(tasks []models.Task) string {
 	return s.String()
 }
 
-// Example functions for each selection
-func aiTaskManager() string {
-	return "✅ All systems operational."
-}
+// type Task struct {
+// 	TaskID         *int64     `db:"task_id"`
+// 	Description    string     `db:"description"`
+// 	Status         string     `db:"status"`
+// 	CreatedAt      *time.Time `db:"created_at"`
+// 	UpdatedAt      *time.Time `db:"updated_at"`
+// 	Priority       string     `db:"priority"`
+// 	AssigneeID     *int64     `db:"assignee_id"`
+// 	DoDate         *time.Time `db:"do_date"`
+// 	FinalDueDate   *time.Time `db:"final_due_date"`
+// 	StartTime      *time.Time `db:"start_time"`
+// 	EndTime        *time.Time `db:"end_time"`
+// 	CompletedAt    *time.Time `db:"completed_at"`
+// 	EstimatedHours *float64   `db:"estimated_hours"`
+// 	Progress       *int64     `db:"progress"`
+// 	ParentTaskID   *int64     `db:"parent_task_id"`
+// }
 
-func addTask() string {
-	return "📜 Fetching latest logs..."
-}
+func (m *model) initaddTaskForm() tea.Cmd {
+	m.task = models.Task{} // clear m.task
 
-func exitProgram() string {
-	return "⚙️ Loading configuration..."
+	m.form = huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Description").
+				Prompt("Describe Task").
+				Value(&m.task.Description).
+				Validate(func(s string) error {
+					if strings.TrimSpace(s) == "" {
+						return fmt.Errorf("description cannot be empty")
+					}
+					return nil
+				}),
+			// add new fields here
+			huh.NewConfirm().
+				Title("Create this task?").
+				Affirmative("Yes, save it!").
+				Negative("Cancel"),
+		),
+	)
+	return m.form.Init()
 }
 
 func main() {
