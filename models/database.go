@@ -162,6 +162,7 @@ func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
 								:CompletedAt, :EstimatedHours, :progress, :ParentTaskID)`
 	result, err := db.NamedExec(query, task)
 	if err != nil {
+		slog.Debug("ERROR: unable to add task %v", err)
 		return 0, err
 	}
 	return result.LastInsertId()

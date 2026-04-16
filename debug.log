@@ -117,3 +117,5 @@ time=2026-04-16T15:22:46.520-06:00 level=INFO source=/home/lufraser/workspace/gi
 time=2026-04-16T15:22:46.520-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:381 msg="Debug info" cursor=3 screen=tasks
 time=2026-04-16T15:45:46.273-06:00 level=INFO source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:386 msg="Task manager started" version=1.0.0
 time=2026-04-16T15:45:46.273-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:387 msg="Debug info" cursor=3 screen=tasks
+time=2026-04-16T15:56:43.047-06:00 level=INFO source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:385 msg="Task manager started" version=1.0.0
+time=2026-04-16T15:56:43.047-06:00 level=DEBUG source=/home/lufraser/workspace/github.com/lufraser/gotaskmanager/main.go:386 msg="Debug info" cursor=3 screen=tasks

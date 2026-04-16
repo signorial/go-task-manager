@@ -165,8 +165,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// m.selected = aiTaskManager()
 					m.screen = screenMenu
 				case 1: // Add task
+					slog.Debug("Enter init add task")
 					m.screen = screenAddTask
 					cmd := m.initaddTaskForm()
+					slog.Debug("Exit init add task")
 					return m, cmd
 				case 2: // List tasks
 					tasks, err := models.DBGetTasks(m.db)
@@ -253,6 +255,7 @@ func (m model) View() tea.View {
 		s.WriteString("\n\n")
 		s.WriteString(faintStyle.Render("Press 'b' or 'esc' to go back to menu"))
 	case screenAddTask:
+		slog.Debug("enter View.screenAddTask")
 		if m.form != nil {
 			s.WriteString(titleStyle.Render("ADD NEW TASK"))
 			s.WriteString("\n\n")
@@ -260,6 +263,7 @@ func (m model) View() tea.View {
 		} else {
 			s.WriteString("Loading form...")
 		}
+		slog.Debug("Exit View.screenAddTask")
 	case screenComplete:
 		s.WriteString(titleStyle.Render("COMPLETE TASK"))
 		s.WriteString("\n\n")
@@ -345,13 +349,13 @@ func RenderTasks(tasks []models.Task) string {
 // }
 
 func (m *model) initaddTaskForm() tea.Cmd {
+	slog.Debug("entering initaddTaskForm")
 	m.task = models.Task{} // clear m.task
 
 	m.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Description").
-				Prompt("Describe Task").
 				Value(&m.task.Description).
 				Validate(func(s string) error {
 					if strings.TrimSpace(s) == "" {
@@ -366,6 +370,7 @@ func (m *model) initaddTaskForm() tea.Cmd {
 				Negative("Cancel"),
 		),
 	)
+	slog.Debug("Exit initaddTaskForm")
 	return m.form.Init()
 }
 
