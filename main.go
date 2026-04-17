@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -330,26 +331,48 @@ func RenderTasks(tasks []models.Task) string {
 	return s.String()
 }
 
-// type Task struct {
-// 	TaskID         *int64     `db:"task_id"`
-// 	Description    string     `db:"description"`
-// 	Status         string     `db:"status"`
-// 	CreatedAt      *time.Time `db:"created_at"`
-// 	UpdatedAt      *time.Time `db:"updated_at"`
-// 	Priority       string     `db:"priority"`
-// 	AssigneeID     *int64     `db:"assignee_id"`
-// 	DoDate         *time.Time `db:"do_date"`
-// 	FinalDueDate   *time.Time `db:"final_due_date"`
-// 	StartTime      *time.Time `db:"start_time"`
-// 	EndTime        *time.Time `db:"end_time"`
-// 	CompletedAt    *time.Time `db:"completed_at"`
-// 	EstimatedHours *float64   `db:"estimated_hours"`
-// 	Progress       *int64     `db:"progress"`
-// 	ParentTaskID   *int64     `db:"parent_task_id"`
-// }
+//	type Task struct {
+//		TaskID         *int64     `db:"task_id"`
+//		Description    string     `db:"description"`
+//		Status         string     `db:"status"`
+//		CreatedAt      *time.Time `db:"created_at"`
+//		UpdatedAt      *time.Time `db:"updated_at"`
+//		Priority       string     `db:"priority"`
+//		AssigneeID     *int64     `db:"assignee_id"`
+//		DoDate         *time.Time `db:"do_date"`
+//		FinalDueDate   *time.Time `db:"final_due_date"`
+//		StartTime      *time.Time `db:"start_time"`
+//		EndTime        *time.Time `db:"end_time"`
+//		CompletedAt    *time.Time `db:"completed_at"`
+//		EstimatedHours *float64   `db:"estimated_hours"`
+//		Progress       *int64     `db:"progress"`
+//		ParentTaskID   *int64     `db:"parent_task_id"`
+//	}
+//
+// ptr returns a pointer to the given value (very useful for *time.Time, *int, etc.)
+func ptr[T any](v T) *T {
+	return &v
+}
 
 func (m *model) initaddTaskForm() tea.Cmd {
 	slog.Debug("entering initaddTaskForm")
+	m.task = models.Task{
+		Status:         "Pending",
+		CreatedAt:      ptr(time.Now()),
+		UpdatedAt:      ptr(time.Time{}), // zero value
+		Priority:       "Regular",
+		AssigneeID:     nil,
+		DoDate:         ptr(time.Now().AddDate(0, 0, 7)),
+		FinalDueDate:   ptr(time.Now().AddDate(0, 0, 14)),
+		StartTime:      ptr(time.Time{}), // zero value
+		EndTime:        ptr(time.Time{}),
+		CompletedAt:    ptr(time.Time{}),
+		EstimatedHours: ptr[int64](4),
+		Progress:       ptr[int64](0),
+		ParentTaskID:   nil,
+		// add other default fields here
+	}
+
 	m.task = models.Task{} // clear m.task
 
 	m.form = huh.NewForm(
