@@ -380,6 +380,17 @@ func (m *model) initaddTaskForm() tea.Cmd {
 		// add other default fields here
 	}
 	slog.Debug("initaddTaskForm task that has been created %v", m.task)
+	var (
+		doDateStr       = datePtrToString(m.task.DoDate)
+		finalDueDateStr = datePtrToString(m.task.FinalDueDate)
+		completedAtStr  = datePtrToString(m.task.CompletedAt)
+		startTimeStr    = timePtrToString(m.task.StartTime)
+		endTimeStr      = timePtrToString(m.task.EndTime)
+		estimatedStr    = floatPtrToString(m.task.EstimatedHours)
+		progressStr     = int64PtrToString(m.task.Progress)
+		assigneeStr     = int64PtrToString(m.task.AssigneeID)
+		parentStr       = int64PtrToString(m.task.ParentTaskID)
+	)
 	m.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -391,15 +402,84 @@ func (m *model) initaddTaskForm() tea.Cmd {
 					}
 					return nil
 				}),
+			huh.NewSelect[string]().
+				Title("Status").
+				Options(
+					huh.NewOption("Pending", "Pending"),
+					huh.NewOption("In Progress", "In Progress"),
+					huh.NewOption("Completed", "Completed"),
+					huh.NewOption("Blocked", "Blocked"),
+				).
+				Value(&m.task.Status),
 
-			// add new fields here
-			// huh.NewConfirm().
-			// 	Title("Create this task?").
-			// 	Affirmative("Yes, save it!").
-			// 	Negative("Cancel"),
+			huh.NewSelect[string]().
+				Title("Priority").
+				Options(
+					huh.NewOption("Low", "Low"),
+					huh.NewOption("Regular", "Regular"),
+					huh.NewOption("High", "High"),
+					huh.NewOption("Urgent", "Urgent"),
+				).
+				Value(&m.task.Priority),
+
+			// Dates
+			huh.NewInput().
+				Title("Do Date (YYYY-MM-DD)").
+				Placeholder("2026-04-26").
+				Value(&doDateStr).
+				Validate(validateDate),
+
+			huh.NewInput().
+				Title("Final Due Date (YYYY-MM-DD)").
+				Placeholder("2026-05-03").
+				Value(&finalDueDateStr).
+				Validate(validateDate),
+
+			huh.NewInput().
+				Title("Completed At (YYYY-MM-DD)").
+				Placeholder("leave empty if not completed").
+				Value(&completedAtStr).
+				Validate(validateDateOptional),
+
+			// Times
+			huh.NewInput().
+				Title("Start Time (HH:MM)").
+				Placeholder("09:00").
+				Value(&startTimeStr).
+				Validate(validateTimeOptional),
+
+			huh.NewInput().
+				Title("End Time (HH:MM)").
+				Placeholder("17:00").
+				Value(&endTimeStr).
+				Validate(validateTimeOptional),
+
+			// Numbers & IDs
+			huh.NewInput().
+				Title("Estimated Hours").
+				Placeholder("4.0").
+				Value(&estimatedStr).
+				Validate(validateFloat),
+
+			huh.NewInput().
+				Title("Progress (%)").
+				Placeholder("0").
+				Value(&progressStr).
+				Validate(validateProgress),
+
+			huh.NewInput().
+				Title("Assignee ID (optional)").
+				Placeholder("123").
+				Value(&assigneeStr),
+
+			huh.NewInput().
+				Title("Parent Task ID (optional)").
+				Placeholder("leave empty for top-level task").
+				Value(&parentStr),
 		),
+		// add new fields here
 	)
-	slog.Debug("Exit initaddTaskForm")
+
 	slog.Debug("task ", "task", m.task)
 	return m.form.Init()
 }
