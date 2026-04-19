@@ -117,10 +117,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if m.form.State == huh.StateCompleted {
 			// save the task
-			if _, err := models.DBAddTask(m.db, m.task); err != nil {
-				m.selected = fmt.Sprintf("Error saving task: %v", err)
+			slog.Debug("the task to add: %+v\n", m.task)
+			if id := models.DBAddTask(m.db, m.task); id == 0 {
+				m.selected = fmt.Sprintf("Error saving task: %d", id)
+				slog.Debug("Error saving task: %d", id)
 			} else {
-				m.selected = "Task added successfully!"
+				m.selected = fmt.Sprintf("Task added successfully! newID: %d", id)
+				slog.Debug("Task added successfully! newID: %d", id)
 			}
 			// clean up ango back to main menu
 			m.form = nil
@@ -174,7 +177,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case 2: // List tasks
 					tasks, err := models.DBGetTasks(m.db)
 					if err != nil {
-						slog.Debug("failed to fetch tasks")
+						slog.Debug("failed to fetch tasks %v", err)
 						m.selected = "Error fetching tasks"
 					} else {
 						m.tasks = tasks
@@ -252,12 +255,14 @@ func (m model) View() tea.View {
 	var s strings.Builder
 	switch m.screen {
 	case screenTasks:
+		slog.Debug("case screentasks")
 		s.WriteString(RenderTasks(m.tasks))
 		s.WriteString("\n\n")
 		s.WriteString(faintStyle.Render("Press 'b' or 'esc' to go back to menu"))
 	case screenAddTask:
 		slog.Debug("enter View.screenAddTask")
 		if m.form != nil {
+			slog.Debug("task: %v", m.task)
 			s.WriteString(titleStyle.Render("ADD NEW TASK"))
 			s.WriteString("\n\n")
 			s.WriteString(m.form.View()) // ← render the huh form
@@ -356,6 +361,7 @@ func ptr[T any](v T) *T {
 
 func (m *model) initaddTaskForm() tea.Cmd {
 	slog.Debug("entering initaddTaskForm")
+	m.task = models.Task{} // clear m.task
 	m.task = models.Task{
 		Status:         "Pending",
 		CreatedAt:      ptr(time.Now()),
@@ -367,14 +373,12 @@ func (m *model) initaddTaskForm() tea.Cmd {
 		StartTime:      ptr(time.Time{}), // zero value
 		EndTime:        ptr(time.Time{}),
 		CompletedAt:    ptr(time.Time{}),
-		EstimatedHours: ptr[int64](4),
+		EstimatedHours: ptr[float64](4),
 		Progress:       ptr[int64](0),
 		ParentTaskID:   nil,
 		// add other default fields here
 	}
-
-	m.task = models.Task{} // clear m.task
-
+	slog.Debug("initaddTaskForm task that has been created %v", m.task)
 	m.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().

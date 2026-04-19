@@ -24,7 +24,7 @@ type Task struct {
 	StartTime      *time.Time `db:"start_time"`
 	EndTime        *time.Time `db:"end_time"`
 	CompletedAt    *time.Time `db:"completed_at"`
-	EstimatedHours *int64     `db:"estimated_hours"`
+	EstimatedHours *float64   `db:"estimated_hours"`
 	Progress       *int64     `db:"progress"`
 	ParentTaskID   *int64     `db:"parent_task_id"`
 }
@@ -36,7 +36,7 @@ func StartDatabase() *sqlx.DB {
 	}
 	schema := `
 				CREATE TABLE IF NOT EXISTS tasks (
-					task_id         TEXT PRIMARY KEY,
+					task_id         INTEGER PRIMARY KEY AUTOINCREMENT,
 					description     TEXT NOT NULL,
 					status          TEXT NOT NULL,
 					created_at      DATETIME,
@@ -109,6 +109,7 @@ func DBDeleteTask(db *sqlx.DB, taskID int64) error {
 }
 
 func DBGetTask(db *sqlx.DB, taskID int64) (Task, error) {
+	slog.Debug("ENTER DBGetTask")
 	var t Task
 	query := `SELECT task_id,
 									description, 
@@ -144,49 +145,58 @@ func DBGetTask(db *sqlx.DB, taskID int64) (Task, error) {
 		&t.ParentTaskID) // runs the query and stores the rows in rows variable
 	if err != nil {
 		if err == sql.ErrNoRows { // if error is because the row isn't found
+			slog.Debug("DBGetTasks ERROR:  couldn't find any rows %v", err)
 			return t, fmt.Errorf("task with task_id %d not found", taskID) // returns row missing error
 		}
+		slog.Debug("DBGetTasks ERROR: some other error %v", err)
 		return t, err // any other database error
 	}
+	slog.Debug("EXIT dbgetDBGetTasks")
 	return t, nil
 }
 
-func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
-	query := `INSERT INTO tasks ( 
-								task_id,description, status, created_at,updated_at,priority, 
-								assignee_id,do_date,final_due_date,start_time,end_time, 
-								completed_at,estimated_hours,progress,parent_task_id)
-						VALUES ( 
-								NULL, :description, :status, :createdAt, :updatedAt, :priority,  
-								:AssigneeID, :DoDate, :FinalDueDate, :StartTime, :EndTime, 
-								:CompletedAt, :EstimatedHours, :progress, :ParentTaskID)`
+func DBAddTask(db *sqlx.DB, task Task) int64 {
+	query := `INSERT INTO tasks (
+                description, status, created_at, updated_at, priority,
+                assignee_id, do_date, final_due_date, start_time, end_time,
+                completed_at, estimated_hours, progress, parent_task_id
+            ) VALUES (
+                :description, :status, :created_at, :updated_at, :priority,
+                :assignee_id, :do_date, :final_due_date, :start_time, :end_time,
+                :completed_at, :estimated_hours, :progress, :parent_task_id
+            )`
+
 	result, err := db.NamedExec(query, task)
 	if err != nil {
 		slog.Debug("ERROR: unable to add task %v", err)
-		return 0, err
+		return 0
 	}
-	return result.LastInsertId()
+	id, err := result.LastInsertId()
+	slog.Debug("completed ad task %d %s", id, err)
+	return id
 }
 
-// msg="ERROR: unable to add task %v" !BADKEY="could not find name createdAt in models.Task{TaskID:(*int64)(nil), Description:\"\", Status:\"\", CreatedAt:<nil>, UpdatedAt:<nil>, Priority:\"\", AssigneeID:(*int64)(nil), DoDate:<nil>, FinalDueDate:<nil>, StartTime:<nil>, EndTime:<nil>, CompletedAt:<nil>, EstimatedHours:(*float64)(nil), Progress:(*int64)(nil), ParentTaskID:(*int64)(nil)}"
-//
-//	type Task struct {
-//		TaskID         *int64     `db:"task_id"`
-//		Description    string     `db:"description"`
-//		Status         string     `db:"status"`
-//		CreatedAt      *time.Time `db:"created_at"`
-//		UpdatedAt      *time.Time `db:"updated_at"`
-//		Priority       string     `db:"priority"`
-//		AssigneeID     *int64     `db:"assignee_id"`
-//		DoDate         *time.Time `db:"do_date"`
-//		FinalDueDate   *time.Time `db:"final_due_date"`
-//		StartTime      *time.Time `db:"start_time"`
-//		EndTime        *time.Time `db:"end_time"`
-//		CompletedAt    *time.Time `db:"completed_at"`
-//		EstimatedHours *float64   `db:"estimated_hours"`
-//		Progress       *int64     `db:"progress"`
-//		ParentTaskID   *int64     `db:"parent_task_id"`
-//	}
+// odels/database.go:165 msg="ERROR: unable to add task %v"
+// !BADKEY="could not find name createdAt in
+// models.Task{TaskID:(*int64)(nil), Description:\"\", Status:\"\", CreatedAt:<nil>, UpdatedAt:<nil>, Priority:\"\", AssigneeID:(*int64)(nil), DoDate:<nil>, FinalDueDate:<nil>, StartTime:<nil>, EndTime:<nil>, CompletedAt:<nil>, EstimatedHours:(*int64)(nil), Progress:(*int64)(nil), ParentTaskID:(*int64)(nil)}"
+
+// type Task struct {
+// 	TaskID         *int64     `db:"task_id"`
+// 	Description    string     `db:"description"`
+// 	Status         string     `db:"status"`
+// 	CreatedAt      *time.Time `db:"created_at"`
+// 	UpdatedAt      *time.Time `db:"updated_at"`
+// 	Priority       string     `db:"priority"`
+// 	AssigneeID     *int64     `db:"assignee_id"`
+// 	DoDate         *time.Time `db:"do_date"`
+// 	FinalDueDate   *time.Time `db:"final_due_date"`
+// 	StartTime      *time.Time `db:"start_time"`
+// 	EndTime        *time.Time `db:"end_time"`
+// 	CompletedAt    *time.Time `db:"completed_at"`
+// 	EstimatedHours *int64     `db:"estimated_hours"`
+// 	Progress       *int64     `db:"progress"`
+// 	ParentTaskID   *int64     `db:"parent_task_id"`
+
 func DBCompleteTask(db *sqlx.DB, taskID int64) error {
 	slog.Debug("Entering DBCompleteTask")
 	slog.Debug("taskID: %d", taskID)
