@@ -58,7 +58,7 @@ type model struct {
 	selected  string
 	screen    screen
 	tasks     []models.Task
-	task      models.Task
+	task      *models.Task
 	TaskID    int64
 	textInput textinput.Model
 }
@@ -118,7 +118,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.form.State == huh.StateCompleted {
 			// save the task
 			slog.Debug("the task to add: %+v\n", m.task)
-			if id := models.DBAddTask(m.db, m.task); id == 0 {
+			if id := models.DBAddTask(m.db, *m.task); id == 0 {
 				m.selected = fmt.Sprintf("Error saving task: %d", id)
 				slog.Debug("Error saving task: %d", id)
 			} else {
@@ -126,6 +126,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				slog.Debug("Task added successfully! newID: %d", id)
 			}
 			// clean up ango back to main menu
+			m.task = nil
 			m.form = nil
 			m.screen = screenMenu
 			return m, nil
@@ -361,8 +362,8 @@ func ptr[T any](v T) *T {
 
 func (m *model) initaddTaskForm() tea.Cmd {
 	slog.Debug("entering initaddTaskForm")
-	m.task = models.Task{} // clear m.task
-	m.task = models.Task{
+	m.task = &models.Task{
+		Description:    "",
 		Status:         "Pending",
 		CreatedAt:      ptr(time.Now()),
 		UpdatedAt:      ptr(time.Time{}), // zero value
@@ -391,13 +392,14 @@ func (m *model) initaddTaskForm() tea.Cmd {
 					return nil
 				}),
 			// add new fields here
-			huh.NewConfirm().
-				Title("Create this task?").
-				Affirmative("Yes, save it!").
-				Negative("Cancel"),
+			// huh.NewConfirm().
+			// 	Title("Create this task?").
+			// 	Affirmative("Yes, save it!").
+			// 	Negative("Cancel"),
 		),
 	)
 	slog.Debug("Exit initaddTaskForm")
+	slog.Debug("task ", "task", m.task)
 	return m.form.Init()
 }
 
