@@ -391,6 +391,7 @@ func (m *model) initaddTaskForm() tea.Cmd {
 					}
 					return nil
 				}),
+
 			// add new fields here
 			// huh.NewConfirm().
 			// 	Title("Create this task?").
@@ -401,6 +402,81 @@ func (m *model) initaddTaskForm() tea.Cmd {
 	slog.Debug("Exit initaddTaskForm")
 	slog.Debug("task ", "task", m.task)
 	return m.form.Init()
+}
+
+// === Pointer <-> String converters ===
+func datePtrToString(t *time.Time) string {
+	if t == nil || t.IsZero() {
+		return ""
+	}
+	return t.Format("2006-01-02")
+}
+
+func timePtrToString(t *time.Time) string {
+	if t == nil || t.IsZero() {
+		return ""
+	}
+	return t.Format("15:04")
+}
+
+func floatPtrToString(f *float64) string {
+	if f == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.1f", *f)
+}
+
+func int64PtrToString(i *int64) string {
+	if i == nil {
+		return ""
+	}
+	return fmt.Sprintf("%d", *i)
+}
+
+// === Validators ===
+func validateDate(s string) error {
+	if _, err := time.Parse("2006-01-02", s); err != nil {
+		return fmt.Errorf("invalid date (use YYYY-MM-DD)")
+	}
+	return nil
+}
+
+func validateDateOptional(s string) error {
+	if s == "" {
+		return nil
+	}
+	return validateDate(s)
+}
+
+func validateTimeOptional(s string) error {
+	if s == "" {
+		return nil
+	}
+	if _, err := time.Parse("15:04", s); err != nil {
+		return fmt.Errorf("invalid time (use HH:MM)")
+	}
+	return nil
+}
+
+func validateFloat(s string) error {
+	if s == "" {
+		return nil
+	}
+	if _, err := strconv.ParseFloat(s, 64); err != nil {
+		return fmt.Errorf("must be a number")
+	}
+	return nil
+}
+
+func validateProgress(s string) error {
+	if s == "" {
+		return nil
+	}
+	v, err := strconv.ParseInt(s, 10, 64)
+	if err != nil || v < 0 || v > 100 {
+		return fmt.Errorf("must be 0-100")
+	}
+	return nil
 }
 
 func main() {
