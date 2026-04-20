@@ -106,39 +106,45 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.screen == screenAddTask && m.form != nil {
 		var formCmd tea.Cmd
 		updatedForm, formCmd := m.form.Update(msg)
+
+		// Update the form pointer safely
 		if f, ok := updatedForm.(*huh.Form); ok {
 			m.form = f
-		} else {
-			if f2, ok := updatedForm.(huh.Model); ok {
-				if formPtr, ok := any(f2).(*huh.Form); ok {
-					m.form = formPtr
-				}
+		} else if f2, ok := updatedForm.(huh.Model); ok {
+			if formPtr, ok := any(f2).(*huh.Form); ok {
+				m.form = formPtr
 			}
 		}
 
+		// Handle completion FIRST (before returning any formCmd)
 		if m.form.State == huh.StateCompleted {
-			// save the task
-			slog.Debug("the task to add: %+v\n", m.task)
-			if id := models.DBAddTask(m.db, *m.task); id == 0 {
-				m.selected = fmt.Sprintf("Error saving task: %d", id)
-				slog.Debug("Error saving task: %d", id)
+			slog.Debug("Form completed - saving task", "task", fmt.Sprintf("%+v", m.task))
+
+			id := models.DBAddTask(m.db, *m.task)
+			if id == 0 {
+				m.selected = "Error saving task"
+				slog.Error("Failed to save task")
 			} else {
-				m.selected = fmt.Sprintf("Task added successfully! newID: %d", id)
-				slog.Debug("Task added successfully! newID: %d", id)
+				m.selected = fmt.Sprintf("✅ Task added successfully! ID: %d", id)
+				slog.Info("Task added", "id", id)
 			}
-			// clean up ango back to main menu
+
+			// Clean up and switch screen
+			m.task = nil
+			m.form = nil
+			m.screen = screenMenu
+			return m, nil // Important: return nil cmd so no further form updates
+		}
+
+		if m.form.State == huh.StateAborted {
+			m.selected = "Task addition cancelled"
 			m.task = nil
 			m.form = nil
 			m.screen = screenMenu
 			return m, nil
 		}
-		// If user aborted (esc / ctrl+c inside form)
-		if m.form.State == huh.StateAborted {
-			m.selected = "Task addition cancelled"
-			m.form = nil
-			m.screen = screenMenu
-			return m, nil
-		}
+
+		// Only return the form command if we're still active
 		return m, formCmd
 	}
 
