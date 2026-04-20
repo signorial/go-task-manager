@@ -53,7 +53,7 @@ func AIQuery() {
 	genkit.DefineTool(
 		g,
 		"AIListTasks",
-		"this returns a list of tasks from the task databases",
+		"this returns a slice of models.Task from the tasks databases.  which contains all the fields related to a task",
 		func(ctx *ai.ToolContext, _ NoInput) ([]models.Task, error) {
 			tasks, err := models.DBGetTasks(db)
 			if err != nil {
@@ -62,4 +62,42 @@ func AIQuery() {
 			}
 			return tasks, err
 		})
+
+	genkit.DefineTool(
+		g,
+		"AIDeleteTask",
+		"Deletes a specified task from the tasks database by its ID.",
+		func(ctx *ai.ToolContext, input struct {
+			TaskID int64 `jsonschema_description:"The unique ID of the task to delete"`
+		},
+		) (string, error) { // ← Return (output, error)
+
+			err := models.DBDeleteTask(db, input.TaskID)
+			if err != nil {
+				slog.Error("failed to delete task", "taskID", input.TaskID, "error", err)
+				return "", fmt.Errorf("failed to delete task: %w", err) // return error to Genkit
+			}
+
+			return fmt.Sprintf("Task %d has been successfully deleted.", input.TaskID), nil
+		},
+	)
+
+	genkit.DefineTool(
+		g,
+		"AIGetTask",
+		"This returns a specified task from the tasks database by its ID.",
+		func(ctx *ai.ToolContext, input struct {
+			TaskID int64 `jsonschema_description:"The unique ID of the task to get"`
+		},
+		) (models.Task, error) { // ← Return (output, error)
+
+			task, err := models.DBGetTask(db, input.TaskID)
+			if err != nil {
+				slog.Error("failed to get task", "taskID", input.TaskID, "error", err)
+				return task, fmt.Errorf("failed to get task: %w", err) // return error to Genkit
+			}
+
+			return task, err
+		},
+	)
 }
