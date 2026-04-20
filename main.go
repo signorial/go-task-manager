@@ -14,6 +14,7 @@ import (
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/jmoiron/sqlx"
+	"github.com/lmittmann/tint"
 	"github.com/lufraser/gotaskmanager/models"
 	_ "modernc.org/sqlite" // import driver for database/sql to use
 )
@@ -457,7 +458,7 @@ func (m *model) initaddTaskForm() tea.Cmd {
 			// Numbers & IDs
 			huh.NewInput().
 				Title("Estimated Hours").
-				Placeholder("4.0").
+				Placeholder("1.0").
 				Value(&estimatedStr).
 				Validate(validateFloat),
 
@@ -469,7 +470,7 @@ func (m *model) initaddTaskForm() tea.Cmd {
 
 			huh.NewInput().
 				Title("Assignee ID (optional)").
-				Placeholder("123").
+				Placeholder("ID").
 				Value(&assigneeStr),
 
 			huh.NewInput().
@@ -562,17 +563,23 @@ func validateProgress(s string) error {
 func main() {
 	// Open (or create) a log file
 	// tail -f debug.log to see the log in real time in another terminal
+	// Open (or create) the log file
 	logFile, err := os.OpenFile("debug.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 	if err != nil {
 		log.Fatal("Failed to open log file:", err)
 	}
 	defer logFile.Close()
 
-	logger := slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{
-		Level:     slog.LevelDebug,
-		AddSource: true,
+	// Create a tinted handler that writes to the file
+	logger := slog.New(tint.NewHandler(logFile, &tint.Options{
+		Level:      slog.LevelDebug, // or slog.LevelInfo in production
+		TimeFormat: time.DateTime,   // or time.RFC3339, time.Stamp, etc.
+		AddSource:  true,            // shows file:line like your original
+		// NoColor: false,               // default = true (colors enabled)
 	}))
+
 	slog.SetDefault(logger)
+
 	slog.Info("Task manager started", "version", "1.0.0")
 	slog.Debug("Debug info", "cursor", 3, "screen", "tasks")
 
