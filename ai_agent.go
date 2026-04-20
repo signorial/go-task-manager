@@ -4,14 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/firebase/genkit/go/plugins/compat_oai"
+	"github.com/lufraser/gotaskmanager/models"
 )
 
 func AIQuery() {
+	db := models.StartDatabase()
+	defer db.Close() // close the database when main() finishes
+
 	ctx := context.Background()
 	// Initialize Genkit with xAI
 	g := genkit.Init(ctx,
@@ -42,4 +47,19 @@ func AIQuery() {
 	}
 	fmt.Println("Response from Grok:")
 	fmt.Println(result)
+
+	// Define an empty input type (this is the standard trick)
+	type NoInput struct{}
+	genkit.DefineTool(
+		g,
+		"AIListTasks",
+		"this returns a list of tasks from the task databases",
+		func(ctx *ai.ToolContext, _ NoInput) ([]models.Task, error) {
+			tasks, err := models.DBGetTasks(db)
+			if err != nil {
+				slog.Debug("failed to fetch tasks %v", err)
+				return nil, err
+			}
+			return tasks, err
+		})
 }
