@@ -100,4 +100,23 @@ func AIQuery() {
 			return task, err
 		},
 	)
+
+	genkit.DefineTool(
+		g,
+		"AICompleteTask",
+		"This marks a task completed based on its its ID.",
+		func(ctx *ai.ToolContext, input struct {
+			TaskID int64 `jsonschema_description:"The unique ID of the task to get"`
+		},
+		) (string, error) { // ← Return (output, error)
+
+			err := models.DBCompleteTask(db, input.TaskID)
+			if err != nil {
+				slog.Error("failed to mark task completed", "error", err)
+				return "", fmt.Errorf("failed to get task: %w", err) // return error to Genkit
+			}
+
+			return "", err
+		},
+	)
 }
