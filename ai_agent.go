@@ -1,11 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
@@ -19,34 +20,57 @@ func AIQuery() {
 
 	ctx := context.Background()
 	// Initialize Genkit with xAI
-	g := genkit.Init(ctx,
+	g := genkit.Init(
+		ctx,
 		genkit.WithPlugins(&compat_oai.OpenAICompatible{
 			Provider: "xai",
 			APIKey:   os.Getenv("XAI_API_KEY"),
 			BaseURL:  "https://api.x.ai/v1",
 		}),
 		genkit.WithDefaultModel("xai/grok-3"),
+		genkit.WithPromptDir("./prompts"),
 	)
-	// Define the flow and capture the returned Flow object
-	grokHelloFlow := genkit.DefineFlow(g, "grokHello",
-		func(ctx context.Context, subject string) (string, error) {
-			resp, err := genkit.Generate(ctx, g,
-				ai.WithModelName("xai/grok-3"),
-				ai.WithPrompt(fmt.Sprintf("Tell me a fun fact about %s.", subject)),
-			)
-			if err != nil {
-				return "", err
-			}
-			return resp.Text(), nil
-		},
-	)
-	// Run the flow using the .Run() method on the flow object
-	result, err := grokHelloFlow.Run(ctx, "Grok and xAI")
-	if err != nil {
-		log.Fatalf("Error running flow: %v", err)
+
+	model := "xai/grok-3"
+	history := []*ai.Message{}
+	scanner := bufio.NewScanner(os.Stdin)
+	// setup grokpromt
+	grokPrompt := genkit.LookupPrompt(g, "grok_chat")
+	if grokPrompt == nil {
+		slog.Debug("ERROR: could not find prompt file grok_chat.prompt")
+		return
 	}
-	fmt.Println("Response from Grok:")
-	fmt.Println(result)
+
+	fmt.Println("Chatting with s% via DotPrompt! Type 'exit' to quit.", model)
+
+	for {
+		fmt.Print("User: ")
+		if !scanner.Scan() {
+			break
+		}
+		input := scanner.Text()
+		if strings.ToLower(input) == "exit" {
+			break
+		}
+
+		// 3. Execute the prompt
+		// Pass the input variables defined in the .prompt file
+		resp, err := grokPrompt.Execute(ctx,
+			ai.WithInput(map[string]any{"user_input": input}),
+			ai.WithMessages(history...), // Still pass history for the loop
+		)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			continue
+		}
+
+		responseText := resp.Text()
+		fmt.Printf("Grok: %s\n", responseText)
+
+		// Update history for the next turn
+		history = append(history, ai.NewUserTextMessage(input))
+		history = append(history, ai.NewModelTextMessage(responseText))
+	}
 
 	// Define an empty input type (this is the standard trick)
 	type NoInput struct{}
