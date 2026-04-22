@@ -1028,3 +1028,57 @@
 [2m2026-04-20 10:29:56[0m DBG [2mgotaskmanager/main.go:266[0m case screentasks
 [2m2026-04-20 10:29:58[0m DBG [2mgotaskmanager/main.go:266[0m case screentasks
 [2m2026-04-20 10:29:58[0m DBG [2mgotaskmanager/main.go:266[0m case screentasks
+[2m2026-04-21 15:31:19[0m [92mINF[0m [2mgotaskmanager/main.go:592[0m Task manager started [2mversion=[0m1.0.0
+[2m2026-04-21 15:31:19[0m DBG [2mgotaskmanager/main.go:593[0m Debug info [2mcursor=[0m3 [2mscreen=[0mtasks
+[2m2026-04-21 15:31:22[0m DBG [2mgotaskmanager/main.go:269[0m case screentasks
+[2m2026-04-21 15:31:26[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:27[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:27[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:28[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:28[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:29[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:29[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:29[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:29[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:29[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:29[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:30[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:30[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:30[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:31[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:31[0m DBG [2mgotaskmanager/main.go:104[0m detected complete screen and runs textInput update
+[2m2026-04-21 15:31:31[0m DBG [2mgotaskmanager/main.go:235[0m entering complete case
+[2m2026-04-21 15:31:31[0m DBG [2mgotaskmanager/main.go:245[0m running complete task
+[2m2026-04-21 15:31:31[0m DBG [2mmodels/database.go:201[0m Entering DBCompleteTask
+[2m2026-04-21 15:31:31[0m DBG [2mmodels/database.go:202[0m taskID: %d [2m!BADKEY=[0m115
+[2m2026-04-21 15:31:31[0m DBG [2mmodels/database.go:207[0m error: %d [2m!BADKEY=[0m<nil>
+[2m2026-04-21 15:31:32[0m DBG [2mgotaskmanager/main.go:269[0m case screentasks
+[2m2026-04-21 15:31:40[0m DBG [2mgotaskmanager/main.go:99[0m detected delete screen and runs textInput update
+[2m2026-04-21 15:31:41[0m DBG [2mgotaskmanager/main.go:99[0m detected delete screen and runs textInput update
+[2m2026-04-21 15:31:41[0m DBG [2mgotaskmanager/main.go:99[0m detected delete screen and runs textInput update
+[2m2026-04-21 15:31:41[0m DBG [2mgotaskmanager/main.go:99[0m detected delete screen and runs textInput update
+[2m2026-04-21 15:31:41[0m DBG [2mgotaskmanager/main.go:99[0m detected delete screen and runs textInput update
+[2m2026-04-21 15:31:41[0m DBG [2mgotaskmanager/main.go:99[0m detected delete screen and runs textInput update
+[2m2026-04-21 15:31:42[0m DBG [2mgotaskmanager/main.go:99[0m detected delete screen and runs textInput update
+[2m2026-04-21 15:31:42[0m DBG [2mgotaskmanager/main.go:99[0m detected delete screen and runs textInput update
+[2m2026-04-21 15:31:42[0m DBG [2mgotaskmanager/main.go:99[0m detected delete screen and runs textInput update
+[2m2026-04-21 15:31:42[0m DBG [2mgotaskmanager/main.go:210[0m entering delete case
+[2m2026-04-21 15:31:42[0m DBG [2mgotaskmanager/main.go:220[0m running delete task
+[2m2026-04-21 15:31:42[0m DBG [2mmodels/database.go:100[0m Entering DBDeleteTask
+[2m2026-04-21 15:31:42[0m DBG [2mmodels/database.go:101[0m taskID: %d [2m!BADKEY=[0m118
+[2m2026-04-21 15:31:42[0m DBG [2mmodels/database.go:105[0m delete action completed successfully
+[2m2026-04-21 15:31:42[0m DBG [2mmodels/database.go:107[0m completed error %s [2m!BADKEY=[0m<nil>
+[2m2026-04-21 15:31:43[0m DBG [2mgotaskmanager/main.go:269[0m case screentasks
+[2m2026-04-21 15:31:47[0m DBG [2mregistry/registry.go:111[0m RegisterPlugin [2mname=[0mxai
+[2m2026-04-21 15:31:47[0m DBG [2mregistry/registry.go:184[0m RegisterValue [2mname=[0m/format/text
+[2m2026-04-21 15:31:47[0m DBG [2mregistry/registry.go:184[0m RegisterValue [2mname=[0m/format/json
+[2m2026-04-21 15:31:47[0m DBG [2mregistry/registry.go:184[0m RegisterValue [2mname=[0m/format/jsonl
+[2m2026-04-21 15:31:47[0m DBG [2mregistry/registry.go:184[0m RegisterValue [2mname=[0m/format/array
+[2m2026-04-21 15:31:47[0m DBG [2mregistry/registry.go:184[0m RegisterValue [2mname=[0m/format/enum
+[2m2026-04-21 15:31:47[0m DBG [2mregistry/registry.go:124[0m RegisterAction [2mkey=[0m/util/generate
+[2m2026-04-21 15:31:47[0m DBG [2mregistry/registry.go:124[0m RegisterAction [2mkey=[0m/executable-prompt/grok_chat
+[2m2026-04-21 15:31:47[0m DBG [2mai/prompt.go:704[0m Registered Dotprompt [2mname=[0mgrok_chat [2mfile=[0mgrok_chat.prompt
+[2m2026-04-21 15:31:47[0m DBG [2mregistry/registry.go:184[0m RegisterValue [2mname=[0mgenkit/defaultModel
+[2m2026-04-21 15:31:47[0m DBG [2mregistry/registry.go:184[0m RegisterValue [2mname=[0mgenkit/promptDir
+[2m2026-04-21 15:33:24[0m DBG [2mcore/action.go:186[0m Action.Run [2mname=[0mgrok_chat
+[2m2026-04-21 15:33:24[0m DBG [2mtracing/tracing.go:186[0m span start [2mname=[0mgrok_chat

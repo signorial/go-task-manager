@@ -12,21 +12,21 @@ import (
 )
 
 type Task struct {
-	TaskID         *int64     `db:"task_id"`
-	Description    string     `db:"description"`
-	Status         string     `db:"status"`
-	CreatedAt      *time.Time `db:"created_at"`
-	UpdatedAt      *time.Time `db:"updated_at"`
-	Priority       string     `db:"priority"`
-	AssigneeID     *int64     `db:"assignee_id"`
-	DoDate         *time.Time `db:"do_date"`
-	FinalDueDate   *time.Time `db:"final_due_date"`
-	StartTime      *time.Time `db:"start_time"`
-	EndTime        *time.Time `db:"end_time"`
-	CompletedAt    *time.Time `db:"completed_at"`
-	EstimatedHours *float64   `db:"estimated_hours"`
-	Progress       *int64     `db:"progress"`
-	ParentTaskID   *int64     `db:"parent_task_id"`
+	TaskID         *int64     `db:"task_id" json:"task_id" jsonschema_description:"Unique identifier for the task"`
+	Description    string     `db:"description" json:"description" jsonschema_description:"Detailed description of what needs to be done"`
+	Status         string     `db:"status" json:"status" jsonschema_description:"Current status (Pending, In Progress, COMPLETED)"`
+	CreatedAt      *time.Time `db:"created_at" json:"created_at" jsonschema_description:"When the task was created"`
+	UpdatedAt      *time.Time `db:"updated_at" json:"updated_at" jsonschema_description:"Last time the task was modified"`
+	Priority       string     `db:"priority" json:"priority" jsonschema_description:"Priority level: Low, Regular, or High"`
+	AssigneeID     *int64     `db:"assignee_id" json:"assignee_id" jsonschema_description:"ID of the person assigned to this task"`
+	DoDate         *time.Time `db:"do_date" json:"do_date" jsonschema_description:"Preferred date to work on this task"`
+	FinalDueDate   *time.Time `db:"final_due_date" json:"final_due_date" jsonschema_description:"Final deadline for completion"`
+	StartTime      *time.Time `db:"start_time" json:"start_time" jsonschema_description:"When work on the task actually began"`
+	EndTime        *time.Time `db:"end_time" json:"end_time" jsonschema_description:"When work on the task was completed"`
+	CompletedAt    *time.Time `db:"completed_at" json:"completed_at" jsonschema_description:"Timestamp when task was marked complete"`
+	EstimatedHours *float64   `db:"estimated_hours" json:"estimated_hours" jsonschema_description:"Estimated hours required to complete the task"`
+	Progress       *int64     `db:"progress" json:"progress" jsonschema_description:"Progress percentage (0-100)"`
+	ParentTaskID   *int64     `db:"parent_task_id" json:"parent_task_id" jsonschema_description:"ID of parent task if this is a subtask"`
 }
 
 func StartDatabase() *sqlx.DB {

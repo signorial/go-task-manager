@@ -15,6 +15,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/jmoiron/sqlx"
 	"github.com/lmittmann/tint"
+	"github.com/lufraser/gotaskmanager/aitaskmanager"
 	"github.com/lufraser/gotaskmanager/models"
 	_ "modernc.org/sqlite" // import driver for database/sql to use
 )
@@ -44,11 +45,12 @@ var (
 type screen string
 
 const (
-	screenMenu     screen = "menu"
-	screenTasks    screen = "tasks"
-	screenDelete   screen = "delete"
-	screenComplete screen = "complete"
-	screenAddTask  screen = "addtask"
+	screenMenu          screen = "menu"
+	screenTasks         screen = "tasks"
+	screenDelete        screen = "delete"
+	screenComplete      screen = "complete"
+	screenAddTask       screen = "addtask"
+	screenAITaskManager screen = "AITaskManager"
 )
 
 type model struct {
@@ -174,7 +176,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case screenMenu:
 				switch m.cursor {
 				case 0: // AI task manager
-					// m.selected = aiTaskManager()
+					m.screen = screenAITaskManager
+					aitaskmanager.AITaskManager()
 					m.screen = screenMenu
 				case 1: // Add task
 					slog.Debug("Enter init add task")

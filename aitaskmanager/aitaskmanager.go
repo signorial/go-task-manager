@@ -1,0 +1,164 @@
+package main // aitaskmanager
+
+import (
+	"bufio"
+	"context"
+	"fmt"
+	"log/slog"
+	"os"
+	"strings"
+
+	"github.com/firebase/genkit/go/ai"
+	"github.com/firebase/genkit/go/genkit"
+	"github.com/firebase/genkit/go/plugins/compat_oai"
+	"github.com/lufraser/gotaskmanager/models"
+)
+
+// func AITaskManager() {
+func main() {
+	db := models.StartDatabase()
+	defer db.Close() // close the database when main() finishes
+
+	ctx := context.Background()
+	// Initialize Genkit with xAI
+	g := genkit.Init(
+		ctx,
+		genkit.WithPlugins(&compat_oai.OpenAICompatible{
+			Provider: "xai",
+			APIKey:   os.Getenv("XAI_API_KEY"),
+			BaseURL:  "https://api.x.ai/v1",
+		}),
+		genkit.WithDefaultModel("xai/grok-3"),
+		genkit.WithPromptDir("../prompts/"),
+		// genkit.WithPromptDir("./prompts"),
+	)
+
+	genkit.DefineSchemaFor[models.Task](g) // add schema to the AITaskManager
+	model := "xai/grok-3"
+	history := []*ai.Message{}
+	scanner := bufio.NewScanner(os.Stdin)
+	// setup grokpromt
+	grokPrompt := genkit.LookupPrompt(g, "grok_chat")
+	if grokPrompt == nil {
+		slog.Debug("ERROR: could not find prompt file grok_chat.prompt")
+		return
+	}
+
+	fmt.Println("Chatting with s% via DotPrompt! Type 'exit' to quit.", model)
+
+	for {
+		fmt.Print("User: ")
+		if !scanner.Scan() {
+			break
+		}
+		input := scanner.Text()
+		if strings.ToLower(input) == "exit" {
+			break
+		}
+
+		// 3. Execute the prompt
+		// Pass the input variables defined in the .prompt file
+		resp, err := grokPrompt.Execute(ctx,
+			ai.WithInput(map[string]any{"user_input": input}),
+			ai.WithMessages(history...), // Still pass history for the loop
+		)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			continue
+		}
+
+		responseText := resp.Text()
+		fmt.Printf("Grok: %s\n", responseText)
+
+		// Update history for the next turn
+		history = append(history, ai.NewUserTextMessage(input))
+		history = append(history, ai.NewModelTextMessage(responseText))
+	}
+
+	// Define an empty input type (this is the standard trick)
+	type NoInput struct{}
+	genkit.DefineTool(
+		g,
+		"AIListTasks", //
+		"this returns a slice of models.Task from the tasks databases.  which contains all the fields related to a task",
+		func(ctx *ai.ToolContext, _ NoInput) ([]models.Task, error) {
+			tasks, err := models.DBGetTasks(db)
+			if err != nil {
+				slog.Debug("failed to fetch tasks %v", err)
+				return nil, err
+			}
+			return tasks, err
+		})
+
+	genkit.DefineTool(
+		g,
+		"AIDeleteTask", //
+		"Deletes a specified task from the tasks database by its ID.",
+		func(ctx *ai.ToolContext, input struct {
+			TaskID int64 `jsonschema_description:"The unique ID of the task to delete"`
+		},
+		) (string, error) { // ← Return (output, error)
+
+			err := models.DBDeleteTask(db, input.TaskID)
+			if err != nil {
+				slog.Error("failed to delete task", "taskID", input.TaskID, "error", err)
+				return "", fmt.Errorf("failed to delete task: %w", err) // return error to Genkit
+			}
+
+			return fmt.Sprintf("Task %d has been successfully deleted.", input.TaskID), nil
+		},
+	)
+
+	genkit.DefineTool(
+		g,
+		"AIGetTask", //
+		"This returns a specified task from the tasks database by its ID.",
+		func(ctx *ai.ToolContext, input struct {
+			TaskID int64 `jsonschema_description:"The unique ID of the task to get"`
+		},
+		) (models.Task, error) { // ← Return (output, error)
+
+			task, err := models.DBGetTask(db, input.TaskID)
+			if err != nil {
+				slog.Error("failed to get task", "taskID", input.TaskID, "error", err)
+				return task, fmt.Errorf("failed to get task: %w", err) // return error to Genkit
+			}
+
+			return task, err
+		},
+	)
+
+	genkit.DefineTool(
+		g,
+		"AICompleteTask", //
+		"This marks a task completed based on its its ID.",
+		func(ctx *ai.ToolContext, input struct {
+			TaskID int64 `jsonschema_description:"The unique ID of the task to get"`
+		},
+		) (string, error) { // ← Return (output, error)
+
+			err := models.DBCompleteTask(db, input.TaskID)
+			if err != nil {
+				slog.Error("failed to mark task completed", "error", err)
+				return "", fmt.Errorf("failed to get task: %w", err) // return error to Genkit
+			}
+
+			return "", err
+		},
+	)
+
+	genkit.DefineTool(
+		g,
+		"AIAddTask",
+		"Creates a new task with a description, status, and priority.",
+		func(ctx *ai.ToolContext, task models.Task) (int64, error) {
+			// Call your existing DB function
+			id := models.DBAddTask(db, task)
+			if id == 0 {
+				return 0, fmt.Errorf("failed to insert task into database")
+			}
+
+			return id, nil
+		},
+	)
+}
