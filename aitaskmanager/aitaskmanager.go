@@ -1,4 +1,4 @@
-package main // aitaskmanager
+package aitaskmanager
 
 import (
 	"bufio"
@@ -12,14 +12,13 @@ import (
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/firebase/genkit/go/plugins/compat_oai"
+	"github.com/jmoiron/sqlx"
 	"github.com/lufraser/gotaskmanager/models"
+	_ "modernc.org/sqlite"
 )
 
 // func AITaskManager() {
-func main() {
-	db := models.StartDatabase()
-	defer db.Close() // close the database when main() finishes
-
+func Run(db *sqlx.DB) {
 	ctx := context.Background()
 	// Initialize Genkit with xAI
 	g := genkit.Init(
@@ -153,7 +152,8 @@ func main() {
 			EstimatedHours *float64 `jsonschema_description:"Estimated hours required to complete the task"`
 			Progress       *int64   `jsonschema_description:"Progress percentage (0-100)"`
 			ParentTaskID   *int64   `jsonschema_description:"ID of parent task if this is a subtask"`
-		}) (int64, error) {
+		},
+		) (int64, error) {
 			var task models.Task
 			task.Description = input.Description
 			task.Status = input.Status
