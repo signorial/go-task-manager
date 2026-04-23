@@ -37,12 +37,6 @@ go run .
 
 ## Usage
 
-### Main Interface
-- **Navigation**: Use `↑/↓` or `j/k` keys
-- **Select**: Press `Enter`
-- **Back**: Press `b` or `Esc`
-- **Quit**: Press `q` or `Ctrl+C`
-
 ### Menu Options
 1. **AI Task Manager** - Chat with Grok to manage tasks naturally
 2. **Add Task** - Interactive form to create detailed tasks
