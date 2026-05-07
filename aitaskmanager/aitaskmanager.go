@@ -279,11 +279,13 @@ func NewSession(db *sqlx.DB) *Session {
 		- EndTime: optional RFC3339 string (e.g. "2026-05-01T12:00:00Z")        
 		- CompletedAt: optional RFC3339 string (e.g. "2026-05-01T12:00:00Z")`,
 		func(ctx *ai.ToolContext, _ NoInput) ([]models.Task, error) {
+			slog.Debug("ENTER AIListTasks")
 			tasks, err := models.DBGetTasks(db)
 			if err != nil {
 				slog.Debug("failed to fetch tasks %v", err)
 				return nil, err
 			}
+			slog.Debug("EXIT AIListTasks")
 			return tasks, err
 		})
 	AIDeleteTask := genkit.DefineTool(
@@ -301,13 +303,15 @@ func NewSession(db *sqlx.DB) *Session {
 		func(ctx *ai.ToolContext, input struct {
 			TaskID int64 `jsonschema_description:"The unique ID of the task to delete"`
 		},
-		) (string, error) {
+		) (success bool, error error) {
+			slog.Debug("ENTER AIDeleteTask")
 			err := models.DBDeleteTask(db, input.TaskID)
 			if err != nil {
 				slog.Error("failed to delete task", "taskID", input.TaskID, "error", err)
-				return "", fmt.Errorf("failed to delete task: %w", err)
+				return false, fmt.Errorf("failed to delete task: %w", err)
 			}
-			return fmt.Sprintf("Task %d has been successfully deleted.", input.TaskID), nil
+			slog.Debug("EXIT AIDeleteTask")
+			return true, nil
 		},
 	)
 	AIGetTask := genkit.DefineTool(
@@ -325,11 +329,13 @@ func NewSession(db *sqlx.DB) *Session {
 			TaskID int64 `jsonschema_description:"The unique ID of the task to get"`
 		},
 		) (models.Task, error) {
+			slog.Debug("ENTER AIGetTask")
 			task, err := models.DBGetTask(db, input.TaskID)
 			if err != nil {
 				slog.Error("failed to get task", "taskID", input.TaskID, "error", err)
 				return task, fmt.Errorf("failed to get task: %w", err)
 			}
+			slog.Debug("EXIT AIGetTask")
 			return task, err
 		},
 	)
@@ -348,13 +354,15 @@ func NewSession(db *sqlx.DB) *Session {
 		func(ctx *ai.ToolContext, input struct {
 			TaskID int64 `jsonschema_description:"The unique ID of the task to get"`
 		},
-		) (string, error) {
+		) (success bool, error error) {
+			slog.Debug("ENTER AICompleteTask")
 			err := models.DBCompleteTask(db, input.TaskID)
 			if err != nil {
 				slog.Error("failed to mark task completed", "error", err)
-				return "", fmt.Errorf("failed to complete task: %w", err)
+				return false, fmt.Errorf("failed to complete task: %w", err)
 			}
-			return "", err
+			slog.Debug("EXIT AICompleteTask")
+			return true, err
 		},
 	)
 	AIAddTask := genkit.DefineTool(
@@ -376,6 +384,7 @@ func NewSession(db *sqlx.DB) *Session {
 			ParentTaskID   *int64   `jsonschema_description:"ID of parent task if this is a subtask"`
 		},
 		) (int64, error) {
+			slog.Debug("ENTER AIAddTask")
 			var task models.Task
 			task.Description = input.Description
 			task.Status = input.Status
@@ -413,6 +422,7 @@ func NewSession(db *sqlx.DB) *Session {
 			if id == 0 {
 				return 0, fmt.Errorf("failed to insert task into database")
 			}
+			slog.Debug("EXIT AIAddTask")
 			return id, nil
 		},
 	)

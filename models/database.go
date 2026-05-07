@@ -103,6 +103,7 @@ func DBDeleteTask(db *sqlx.DB, taskID int64) error {
 	_, err := db.Exec(query, taskID)
 	if err == nil {
 		slog.Debug("delete action completed successfully")
+		return nil
 	}
 	slog.Debug("completed error %s", err)
 	return err
