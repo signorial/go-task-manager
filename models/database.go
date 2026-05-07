@@ -176,27 +176,6 @@ func DBAddTask(db *sqlx.DB, task Task) int64 {
 	return id
 }
 
-// odels/database.go:165 msg="ERROR: unable to add task %v"
-// !BADKEY="could not find name createdAt in
-// models.Task{TaskID:(*int64)(nil), Description:\"\", Status:\"\", CreatedAt:<nil>, UpdatedAt:<nil>, Priority:\"\", AssigneeID:(*int64)(nil), DoDate:<nil>, FinalDueDate:<nil>, StartTime:<nil>, EndTime:<nil>, CompletedAt:<nil>, EstimatedHours:(*int64)(nil), Progress:(*int64)(nil), ParentTaskID:(*int64)(nil)}"
-
-// type Task struct {
-// 	TaskID         *int64     `db:"task_id"`
-// 	Description    string     `db:"description"`
-// 	Status         string     `db:"status"`
-// 	CreatedAt      *time.Time `db:"created_at"`
-// 	UpdatedAt      *time.Time `db:"updated_at"`
-// 	Priority       string     `db:"priority"`
-// 	AssigneeID     *int64     `db:"assignee_id"`
-// 	DoDate         *time.Time `db:"do_date"`
-// 	FinalDueDate   *time.Time `db:"final_due_date"`
-// 	StartTime      *time.Time `db:"start_time"`
-// 	EndTime        *time.Time `db:"end_time"`
-// 	CompletedAt    *time.Time `db:"completed_at"`
-// 	EstimatedHours *int64     `db:"estimated_hours"`
-// 	Progress       *int64     `db:"progress"`
-// 	ParentTaskID   *int64     `db:"parent_task_id"`
-
 func DBCompleteTask(db *sqlx.DB, taskID int64) error {
 	slog.Debug("Entering DBCompleteTask")
 	slog.Debug("taskID: %d", taskID)

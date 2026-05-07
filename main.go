@@ -54,22 +54,32 @@ const (
 )
 
 type model struct {
-	db        *sqlx.DB
-	form      *huh.Form
-	cursor    int
-	choices   []string
-	selected  string
-	screen    screen
-	tasks     []models.Task
-	task      *models.Task
-	TaskID    int64
-	textInput textinput.Model
+	db         *sqlx.DB
+	form       *huh.Form
+	cursor     int
+	choices    []string
+	selected   string
+	screen     screen
+	tasks      []models.Task
+	task       *models.Task
+	TaskID     int64
+	textInput  textinput.Model
+	aiSession  *aitaskmanager.Session
+	aiMessages []string
+	aiInput    textinput.Model
+	err        error
 }
 
 func initialModel(db *sqlx.DB) model {
 	ti := textinput.New()
 	ti.Placeholder = "Enter Task ID"
 	ti.CharLimit = 10
+	ti.Focus()
+
+	aiTi := textinput.New()
+	aiTi.Placeholder = "Enter AI request"
+	aiTi.CharLimit = 500
+	// aiTi.Focus()
 
 	return model{
 		db:     db,
@@ -81,7 +91,10 @@ func initialModel(db *sqlx.DB) model {
 			"Complete Task",
 			"Delete Task",
 		},
-		textInput: ti,
+		textInput:  ti,
+		aiInput:    aiTi,
+		aiMessages: []string{"AI Task Manager ready. Type your request"},
+		aiSession:  aitaskmanager.NewSession(db),
 	}
 }
 
@@ -89,20 +102,56 @@ func (m model) Init() tea.Cmd {
 	if m.screen == screenAddTask && m.form != nil {
 		return m.form.Init()
 	}
+	if m.screen == screenAITaskManager {
+		return textinput.Blink
+	}
 	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+
 	// Handle text input updates when on delete screen
 	if m.screen == screenDelete {
 		slog.Debug("detected delete screen and runs textInput update")
 		m.textInput, cmd = m.textInput.Update(msg)
 	}
-	// Handle text input updates when on delete screen
+	// Handle text input updates when on complete screen
 	if m.screen == screenComplete {
 		slog.Debug("detected complete screen and runs textInput update")
 		m.textInput, cmd = m.textInput.Update(msg)
+	}
+
+	// Handle AI Task Manager input
+	if m.screen == screenAITaskManager {
+		var aiCmd tea.Cmd
+		m.aiInput, aiCmd = m.aiInput.Update(msg) // ensures typing works
+		cmd = aiCmd
+		if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+			switch keyMsg.String() {
+			case "enter":
+				input := strings.TrimSpace(m.aiInput.Value())
+				if input != "" && m.aiSession != nil {
+					m.aiMessages = append(m.aiMessages, "You: "+input)
+					response, err := m.aiSession.Execute(input)
+					if err != nil {
+						m.aiMessages = append(m.aiMessages, "Error: "+err.Error())
+					} else {
+						m.aiMessages = append(m.aiMessages, "Grok: "+response)
+					}
+					m.aiInput.SetValue("")
+					// NEW: History limit (prevents unbounded growth)
+					if len(m.aiMessages) > 40 {
+						m.aiMessages = m.aiMessages[len(m.aiMessages)-40:]
+					}
+				}
+
+				return m, nil
+			case "ctrl+c", "q":
+				return m, tea.Quit
+			}
+		}
+		// return m, cmd
 	}
 
 	if m.screen == screenAddTask && m.form != nil {
@@ -145,7 +194,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.screen = screenMenu
 			return m, nil
 		}
-
 		// Only return the form command if we're still active
 		return m, formCmd
 	}
@@ -154,6 +202,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
+		case "esc":
+			if m.screen != screenMenu {
+				isAI := m.screen == screenAITaskManager
+				m.screen = screenMenu
+				if isAI {
+					m.aiInput.Blur()
+				} else {
+					m.textInput.Blur()
+				}
+				return m, nil
+			}
+
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "up", "k":
@@ -164,21 +224,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.screen == screenMenu && m.cursor < len(m.choices)-1 {
 				m.cursor++
 			}
-		case "b", "esc":
-			if m.screen != screenMenu {
-				m.screen = screenMenu
-				m.textInput.Blur()
-				return m, nil
-			}
 		case "enter":
 			// call the appropriate function based on initialModel
 			switch m.screen {
 			case screenMenu:
 				switch m.cursor {
 				case 0: // AI task manager
+					if m.aiSession == nil {
+						m.aiSession = aitaskmanager.NewSession(m.db)
+						if m.aiSession == nil {
+							m.aiMessages = append(m.aiMessages, "Error: failed to initialize AI session")
+							m.screen = screenMenu
+							return m, nil
+						}
+					}
 					m.screen = screenAITaskManager
-					aitaskmanager.AITaskManager()
-					m.screen = screenMenu
+					m.aiInput.Focus()
+					m.aiInput.SetValue("")
+					return m, textinput.Blink
 				case 1: // Add task
 					slog.Debug("Enter init add task")
 					m.screen = screenAddTask
@@ -200,6 +263,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.textInput.Focus()
 					m.textInput.SetValue("")
 					return m, textinput.Blink
+
 				case 4: // Delete task
 					m.screen = screenDelete
 					m.textInput.Focus()
@@ -265,6 +329,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() tea.View {
 	var s strings.Builder
 	switch m.screen {
+	case screenAITaskManager:
+		s.WriteString(titleStyle.Render("AI TASK MANAGER"))
+		s.WriteString("\n")
+		for _, msg := range m.aiMessages {
+			s.WriteString(itemStyle.Render(msg) + "\n")
+		}
+		s.WriteString("\n" + m.aiInput.View() + "\n")
+		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: send • esc/b: back to menu"))
 	case screenTasks:
 		slog.Debug("case screentasks")
 		s.WriteString(RenderTasks(m.tasks))
