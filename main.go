@@ -116,6 +116,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	slog.Debug("Update received message", "type", fmt.Sprintf("%T", msg), "msg", msg)
 	var cmd tea.Cmd
 
+	// Global keys first (ESC, quit) — works on every screen
+	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+		switch keyMsg.String() {
+		case "esc":
+			if m.screen != screenMenu {
+				m.screen = screenMenu
+				m.tasks = nil
+				m.viewport.SetContent("")
+				m.textInput.Blur()
+				m.aiInput.Blur()
+				m.aiMessages = m.aiMessages[:0]
+				return m, nil
+			}
+		case "ctrl+c", "q":
+			return m, tea.Quit
+		}
+	}
+
 	// Handle text input updates when on delete screen
 	if m.screen == screenDelete {
 		slog.Debug("detected delete screen and runs textInput update")
@@ -218,19 +236,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "esc":
-			if m.screen != screenMenu {
-				m.screen = screenMenu
-				m.tasks = nil
-				m.viewport.SetContent("")
-				m.textInput.Blur()
-				m.aiInput.Blur()
-				m.aiMessages = m.aiMessages[:0]
-				return m, nil
-			}
-
-		case "ctrl+c", "q":
-			return m, tea.Quit
 		case "up", "k":
 			if m.screen == screenMenu && m.cursor > 0 {
 				m.cursor--
@@ -359,7 +364,7 @@ func (m model) View() tea.View {
 			s.WriteString(itemStyle.Render(msg) + "\n")
 		}
 		s.WriteString("\n" + m.aiInput.View() + "\n")
-		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: send • esc/b: back to menu"))
+		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: send • esc: back to menu"))
 	case screenTasks:
 		// 1. Prepare the task content
 		taskContent := RenderTasks(m.tasks)

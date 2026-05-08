@@ -28,7 +28,7 @@ Core Rules:
 
 
 Available tools:
-- AIListTasks(): returns all tasks
+- AIListTasks(): returns all tasks.  include the (description, status, priority, final_due_date, progress, parent_task_id
 - AIAddTask(...): creates a task
 - AIGetTask(taskID): gets one task
 - AIDeleteTask(taskID): deletes a task, returns success bool
