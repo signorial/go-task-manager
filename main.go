@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/lmittmann/tint"
 	"github.com/lufraser/gotaskmanager/aitaskmanager"
@@ -68,18 +70,22 @@ type model struct {
 	aiMessages []string
 	aiInput    textinput.Model
 	err        error
+	viewport   viewport.Model
+	ready      bool
 }
 
 func initialModel(db *sqlx.DB) model {
 	ti := textinput.New()
 	ti.Placeholder = "Enter Task ID"
 	ti.CharLimit = 10
-	ti.Focus()
+	// ti.Focus()
 
 	aiTi := textinput.New()
 	aiTi.Placeholder = "Enter AI request"
 	aiTi.CharLimit = 500
 	// aiTi.Focus()
+
+	vp := viewport.New(viewport.WithWidth(80), viewport.WithHeight(20))
 
 	return model{
 		db:     db,
@@ -95,6 +101,7 @@ func initialModel(db *sqlx.DB) model {
 		aiInput:    aiTi,
 		aiMessages: []string{"AI Task Manager ready. Type your request"},
 		aiSession:  aitaskmanager.NewSession(db),
+		viewport:   vp,
 	}
 }
 
@@ -102,13 +109,11 @@ func (m model) Init() tea.Cmd {
 	if m.screen == screenAddTask && m.form != nil {
 		return m.form.Init()
 	}
-	if m.screen == screenAITaskManager {
-		return textinput.Blink
-	}
 	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	slog.Debug("Update received message", "type", fmt.Sprintf("%T", msg), "msg", msg)
 	var cmd tea.Cmd
 
 	// Handle text input updates when on delete screen
@@ -146,12 +151,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 
-				return m, nil
+				// return m, nil
 			case "ctrl+c", "q":
 				return m, tea.Quit
 			}
 		}
-		// return m, cmd
+		return m, cmd
 	}
 
 	if m.screen == screenAddTask && m.form != nil {
@@ -198,19 +203,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, formCmd
 	}
 
+	if m.screen == screenTasks {
+		slog.Debug("task screen is active")
+	}
+
 	// main menu
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.viewport.SetWidth(msg.Width)
+		m.viewport.SetHeight(msg.Height - 10) // header/footer allowance
+		if m.screen == screenTasks {
+			m.viewport.SetContent(RenderTasks(m.tasks))
+		}
+
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "esc":
 			if m.screen != screenMenu {
-				isAI := m.screen == screenAITaskManager
 				m.screen = screenMenu
-				if isAI {
-					m.aiInput.Blur()
-				} else {
-					m.textInput.Blur()
-				}
+				m.tasks = nil
+				m.viewport.SetContent("")
+				m.textInput.Blur()
+				m.aiInput.Blur()
+				m.aiMessages = m.aiMessages[:0]
 				return m, nil
 			}
 
@@ -241,7 +256,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.screen = screenAITaskManager
 					m.aiInput.Focus()
 					m.aiInput.SetValue("")
-					return m, textinput.Blink
+					return m, nil
 				case 1: // Add task
 					slog.Debug("Enter init add task")
 					m.screen = screenAddTask
@@ -251,24 +266,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case 2: // List tasks
 					tasks, err := models.DBGetTasks(m.db)
 					if err != nil {
-						slog.Debug("failed to fetch tasks %v", err)
+						slog.Debug("failed to fetch tasks", "error", err)
 						m.selected = "Error fetching tasks"
 					} else {
 						m.tasks = tasks
 						m.selected = ""
 					}
+					m.aiInput.Blur() // ensure AI input is not active
+					m.textInput.Blur()
+					tea.ClearScreen()
 					m.screen = screenTasks
+					return m, nil // explicit clean return
 				case 3: // Complete Task
 					m.screen = screenComplete
 					m.textInput.Focus()
 					m.textInput.SetValue("")
-					return m, textinput.Blink
+					return m, nil
 
 				case 4: // Delete task
 					m.screen = screenDelete
 					m.textInput.Focus()
 					m.textInput.SetValue("")
-					return m, textinput.Blink
+					return m, nil
 				}
 			case screenDelete:
 				slog.Debug("entering delete case")
@@ -323,7 +342,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
-	return m, cmd
+	if m.screen == screenTasks {
+		m.viewport, cmd = m.viewport.Update(msg)
+		return m, cmd
+	}
+	return m, nil
 }
 
 func (m model) View() tea.View {
@@ -338,10 +361,16 @@ func (m model) View() tea.View {
 		s.WriteString("\n" + m.aiInput.View() + "\n")
 		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: send • esc/b: back to menu"))
 	case screenTasks:
-		slog.Debug("case screentasks")
-		s.WriteString(RenderTasks(m.tasks))
+		// 1. Prepare the task content
+		taskContent := RenderTasks(m.tasks)
+		// 2. Load the content into the viewport
+		m.viewport.SetContent(taskContent)
+		// 3. Render the viewport with your header/footer
+		s.WriteString(titleStyle.Render("Your Tasks"))
+		s.WriteString("\n")
+		s.WriteString(m.viewport.View()) // The viewport handles the limited area
 		s.WriteString("\n\n")
-		s.WriteString(faintStyle.Render("Press 'b' or 'esc' to go back to menu"))
+		s.WriteString(faintStyle.Render("Press 'esc' to go back to menu • Use arrows to scroll"))
 	case screenAddTask:
 		slog.Debug("enter View.screenAddTask")
 		if m.form != nil {
@@ -414,7 +443,7 @@ func RenderTasks(tasks []models.Task) string {
 		}
 		row := fmt.Sprintf("%s  %s  %s  %s", TaskIDStr, task.Status, task.Description, dateStr)
 		s.WriteString(selectedItemStyle.Render(row))
-		s.WriteString("\n")
+		s.WriteString("\n\n")
 	}
 	return s.String()
 }
