@@ -1,0 +1,116 @@
+[2mJun  8 11:28:23.902[0m DBG Entering DBCompleteTask
+[2mJun  8 11:28:23.902[0m DBG taskID: %d [2m!BADKEY=[0m104
+[2mJun  8 11:28:23.924[0m DBG error: %d [2m!BADKEY=[0m<nil>
+[2mJun  8 11:30:04.183[0m DBG completed ad task %d %s [2m!BADKEY=[0m144 [2m!BADKEY=[0m<nil>
+[2mJun  8 14:31:28.852[0m DBG Entering DBCompleteTask
+[2mJun  8 14:31:28.852[0m DBG taskID: %d [2m!BADKEY=[0m115
+[2mJun  8 14:31:28.870[0m DBG error: %d [2m!BADKEY=[0m<nil>
+[2mJun  8 15:32:51.954[0m DBG Entering DBCompleteTask
+[2mJun  8 15:32:51.954[0m DBG taskID: %d [2m!BADKEY=[0m105
+[2mJun  8 15:32:51.954[0m DBG error: %d [2m!BADKEY=[0m<nil>
+[2mJun  8 15:35:04.798[0m DBG Entering DBDeleteTask
+[2mJun  8 15:35:04.798[0m DBG taskID: %d [2m!BADKEY=[0m105
+[2mJun  8 15:35:04.798[0m DBG ENTER DBGetTask
+[2mJun  8 15:35:04.798[0m DBG EXIT dbgetDBGetTasks
+[2mJun  8 15:35:04.820[0m DBG delete action completed successfully
+[2mJun  8 15:35:17.586[0m DBG RegisterPlugin [2mname=[0mxai
+[2mJun  8 15:35:17.586[0m DBG RegisterValue [2mname=[0m/format/text
+[2mJun  8 15:35:17.586[0m DBG RegisterValue [2mname=[0m/format/json
+[2mJun  8 15:35:17.586[0m DBG RegisterValue [2mname=[0m/format/jsonl
+[2mJun  8 15:35:17.586[0m DBG RegisterValue [2mname=[0m/format/array
+[2mJun  8 15:35:17.586[0m DBG RegisterValue [2mname=[0m/format/enum
+[2mJun  8 15:35:17.588[0m DBG RegisterAction [2mkey=[0m/util/generate
+[2mJun  8 15:35:17.589[0m DBG RegisterAction [2mkey=[0m/executable-prompt/grok_chat
+[2mJun  8 15:35:17.589[0m DBG Registered Dotprompt [2mname=[0mgrok_chat [2mfile=[0mgrok_chat.prompt
+[2mJun  8 15:35:17.589[0m DBG RegisterValue [2mname=[0mgenkit/defaultModel
+[2mJun  8 15:35:17.589[0m DBG RegisterValue [2mname=[0mgenkit/promptDir
+[2mJun  8 15:35:17.589[0m DBG RegisterSchema [2mname=[0mTask
+[2mJun  8 15:35:17.590[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIListTasks
+[2mJun  8 15:35:17.590[0m DBG RegisterAction [2mkey=[0m/tool/AIListTasks
+[2mJun  8 15:35:17.590[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIDeleteTask
+[2mJun  8 15:35:17.590[0m DBG RegisterAction [2mkey=[0m/tool/AIDeleteTask
+[2mJun  8 15:35:17.591[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIGetTask
+[2mJun  8 15:35:17.591[0m DBG RegisterAction [2mkey=[0m/tool/AIGetTask
+[2mJun  8 15:35:17.591[0m DBG RegisterAction [2mkey=[0m/tool.v2/AICompleteTask
+[2mJun  8 15:35:17.591[0m DBG RegisterAction [2mkey=[0m/tool/AICompleteTask
+[2mJun  8 15:35:17.591[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIAddTask
+[2mJun  8 15:35:17.591[0m DBG RegisterAction [2mkey=[0m/tool/AIAddTask
+[2mJun  8 15:35:45.860[0m DBG Action.Run [2mname=[0mgrok_chat
+[2mJun  8 15:35:45.860[0m DBG span start [2mname=[0mgrok_chat
+[2mJun  8 15:35:45.861[0m DBG span end [2mname=[0mgrok_chat
+[2mJun  8 15:35:45.861[0m DBG Action.Run [2mname=[0mgrok_chat [2merr=[0m<nil>
+[2mJun  8 15:35:45.861[0m DBG RegisterAction [2mkey=[0m/model/xai/grok-3
+[2mJun  8 15:35:45.861[0m DBG span start [2mname=[0mgenerate
+[2mJun  8 15:35:45.861[0m DBG Action.Run [2mname=[0mxai/grok-3
+[2mJun  8 15:35:45.861[0m DBG span start [2mname=[0mxai/grok-3
+[2mJun  8 15:35:50.625[0m DBG span end [2mname=[0mxai/grok-3
+[2mJun  8 15:35:50.625[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
+[2mJun  8 15:35:50.625[0m DBG span end [2mname=[0mgenerate
+[2mJun  8 15:36:18.088[0m DBG Action.Run [2mname=[0mgrok_chat
+[2mJun  8 15:36:18.088[0m DBG span start [2mname=[0mgrok_chat
+[2mJun  8 15:36:18.089[0m DBG span end [2mname=[0mgrok_chat
+[2mJun  8 15:36:18.089[0m DBG Action.Run [2mname=[0mgrok_chat [2merr=[0m<nil>
+[2mJun  8 15:36:18.089[0m DBG span start [2mname=[0mgenerate
+[2mJun  8 15:36:18.089[0m DBG Action.Run [2mname=[0mxai/grok-3
+[2mJun  8 15:36:18.089[0m DBG span start [2mname=[0mxai/grok-3
+[2mJun  8 15:36:23.211[0m DBG span end [2mname=[0mxai/grok-3
+[2mJun  8 15:36:23.211[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
+[2mJun  8 15:36:23.211[0m DBG Action.Run [2mname=[0mAIAddTask
+[2mJun  8 15:36:23.211[0m DBG span start [2mname=[0mAIAddTask
+[2mJun  8 15:36:23.211[0m DBG ENTER AIAddTask
+[2mJun  8 15:36:23.233[0m DBG completed ad task %d %s [2m!BADKEY=[0m145 [2m!BADKEY=[0m<nil>
+[2mJun  8 15:36:23.233[0m DBG EXIT AIAddTask
+[2mJun  8 15:36:23.234[0m DBG span end [2mname=[0mAIAddTask
+[2mJun  8 15:36:23.234[0m DBG Action.Run [2mname=[0mAIAddTask [2merr=[0m<nil>
+[2mJun  8 15:36:23.234[0m DBG span start [2mname=[0mgenerate
+[2mJun  8 15:36:23.234[0m DBG Action.Run [2mname=[0mxai/grok-3
+[2mJun  8 15:36:23.234[0m DBG span start [2mname=[0mxai/grok-3
+[2mJun  8 15:36:24.358[0m DBG span end [2mname=[0mxai/grok-3
+[2mJun  8 15:36:24.358[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
+[2mJun  8 15:36:24.358[0m DBG span end [2mname=[0mgenerate
+[2mJun  8 15:36:24.358[0m DBG span end [2mname=[0mgenerate
+[2mJun  8 16:05:26.436[0m DBG completed ad task %d %s [2m!BADKEY=[0m146 [2m!BADKEY=[0m<nil>
+[2mJun  8 16:05:56.692[0m DBG RegisterPlugin [2mname=[0mxai
+[2mJun  8 16:05:56.692[0m DBG RegisterValue [2mname=[0m/format/text
+[2mJun  8 16:05:56.692[0m DBG RegisterValue [2mname=[0m/format/json
+[2mJun  8 16:05:56.692[0m DBG RegisterValue [2mname=[0m/format/jsonl
+[2mJun  8 16:05:56.692[0m DBG RegisterValue [2mname=[0m/format/array
+[2mJun  8 16:05:56.692[0m DBG RegisterValue [2mname=[0m/format/enum
+[2mJun  8 16:05:56.692[0m DBG RegisterAction [2mkey=[0m/util/generate
+[2mJun  8 16:05:56.693[0m DBG RegisterAction [2mkey=[0m/executable-prompt/grok_chat
+[2mJun  8 16:05:56.693[0m DBG Registered Dotprompt [2mname=[0mgrok_chat [2mfile=[0mgrok_chat.prompt
+[2mJun  8 16:05:56.693[0m DBG RegisterValue [2mname=[0mgenkit/defaultModel
+[2mJun  8 16:05:56.693[0m DBG RegisterValue [2mname=[0mgenkit/promptDir
+[2mJun  8 16:05:56.693[0m DBG RegisterSchema [2mname=[0mTask
+[2mJun  8 16:05:56.693[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIListTasks
+[2mJun  8 16:05:56.693[0m DBG RegisterAction [2mkey=[0m/tool/AIListTasks
+[2mJun  8 16:05:56.693[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIDeleteTask
+[2mJun  8 16:05:56.693[0m DBG RegisterAction [2mkey=[0m/tool/AIDeleteTask
+[2mJun  8 16:05:56.693[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIGetTask
+[2mJun  8 16:05:56.693[0m DBG RegisterAction [2mkey=[0m/tool/AIGetTask
+[2mJun  8 16:05:56.694[0m DBG RegisterAction [2mkey=[0m/tool.v2/AICompleteTask
+[2mJun  8 16:05:56.694[0m DBG RegisterAction [2mkey=[0m/tool/AICompleteTask
+[2mJun  8 16:05:56.694[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIAddTask
+[2mJun  8 16:05:56.694[0m DBG RegisterAction [2mkey=[0m/tool/AIAddTask
+[2mJun  8 16:21:01.566[0m DBG RegisterPlugin [2mname=[0mxai
+[2mJun  8 16:21:01.566[0m DBG RegisterValue [2mname=[0m/format/text
+[2mJun  8 16:21:01.566[0m DBG RegisterValue [2mname=[0m/format/json
+[2mJun  8 16:21:01.566[0m DBG RegisterValue [2mname=[0m/format/jsonl
+[2mJun  8 16:21:01.566[0m DBG RegisterValue [2mname=[0m/format/array
+[2mJun  8 16:21:01.566[0m DBG RegisterValue [2mname=[0m/format/enum
+[2mJun  8 16:21:01.567[0m DBG RegisterAction [2mkey=[0m/util/generate
+[2mJun  8 16:21:01.567[0m DBG RegisterAction [2mkey=[0m/executable-prompt/grok_chat
+[2mJun  8 16:21:01.567[0m DBG Registered Dotprompt [2mname=[0mgrok_chat [2mfile=[0mgrok_chat.prompt
+[2mJun  8 16:21:01.567[0m DBG RegisterValue [2mname=[0mgenkit/defaultModel
+[2mJun  8 16:21:01.567[0m DBG RegisterValue [2mname=[0mgenkit/promptDir
+[2mJun  8 16:21:01.567[0m DBG RegisterSchema [2mname=[0mTask
+[2mJun  8 16:21:01.568[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIListTasks
+[2mJun  8 16:21:01.568[0m DBG RegisterAction [2mkey=[0m/tool/AIListTasks
+[2mJun  8 16:21:01.568[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIDeleteTask
+[2mJun  8 16:21:01.568[0m DBG RegisterAction [2mkey=[0m/tool/AIDeleteTask
+[2mJun  8 16:21:01.568[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIGetTask
+[2mJun  8 16:21:01.568[0m DBG RegisterAction [2mkey=[0m/tool/AIGetTask
+[2mJun  8 16:21:01.568[0m DBG RegisterAction [2mkey=[0m/tool.v2/AICompleteTask
+[2mJun  8 16:21:01.568[0m DBG RegisterAction [2mkey=[0m/tool/AICompleteTask
+[2mJun  8 16:21:01.568[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIAddTask
+[2mJun  8 16:21:01.568[0m DBG RegisterAction [2mkey=[0m/tool/AIAddTask

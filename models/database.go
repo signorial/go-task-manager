@@ -100,7 +100,14 @@ func DBDeleteTask(db *sqlx.DB, taskID int64) error {
 	slog.Debug("Entering DBDeleteTask")
 	slog.Debug("taskID: %d", taskID)
 	query := `DELETE FROM tasks WHERE task_id = ?`
-	_, err := db.Exec(query, taskID)
+
+	// check if task has already been deleted
+	_, err := DBGetTask(db, taskID)
+	if err != nil {
+		return fmt.Errorf("wrong task id or task already deleted %d", taskID)
+	}
+
+	_, err = db.Exec(query, taskID)
 	if err == nil {
 		slog.Debug("delete action completed successfully")
 		return nil
@@ -156,7 +163,7 @@ func DBGetTask(db *sqlx.DB, taskID int64) (Task, error) {
 	return t, nil
 }
 
-func DBAddTask(db *sqlx.DB, task Task) int64 {
+func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
 	query := `INSERT INTO tasks (
                 description, status, created_at, updated_at, priority,
                 assignee_id, do_date, final_due_date, start_time, end_time,
@@ -170,11 +177,11 @@ func DBAddTask(db *sqlx.DB, task Task) int64 {
 	result, err := db.NamedExec(query, task)
 	if err != nil {
 		slog.Debug("ERROR: unable to add task %v", err)
-		return 0
+		return 0, err
 	}
 	id, err := result.LastInsertId()
 	slog.Debug("completed ad task %d %s", id, err)
-	return id
+	return id, nil
 }
 
 func DBCompleteTask(db *sqlx.DB, taskID int64) error {

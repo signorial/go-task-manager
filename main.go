@@ -2,705 +2,429 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"charm.land/bubbles/v2/textinput"
-	"charm.land/bubbles/v2/viewport"
-	tea "charm.land/bubbletea/v2"
-	"charm.land/huh/v2"
-	"charm.land/lipgloss/v2"
-
+	"github.com/gdamore/tcell/v2"
 	"github.com/jmoiron/sqlx"
 	"github.com/lmittmann/tint"
 	"github.com/lufraser/gotaskmanager/aitaskmanager"
 	"github.com/lufraser/gotaskmanager/models"
-	_ "modernc.org/sqlite" // import driver for database/sql to use
+	"github.com/rivo/tview"
+	_ "modernc.org/sqlite"
 )
 
-// Define styles using Lip Gloss
-var (
-	titleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#FAFAFA")).
-			Background(lipgloss.Color("#7D56F4")).
-			Padding(0, 1).
-			MarginBottom(1)
-	itemStyle = lipgloss.NewStyle().
-			PaddingLeft(2)
-	selectedItemStyle = lipgloss.NewStyle().
-				PaddingLeft(0).
-				Foreground(lipgloss.Color("#00EAD3")).
-				Bold(true)
-	borderStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#874BFD")).
-			Padding(1, 3).
-			Margin(1, 0)
-	faintStyle = lipgloss.NewStyle().Faint(true)
-)
+// OneDarkProTheme creates a custom tview.Theme matching the Atom/VS Code style.
+var OneDarkProTheme = tview.Theme{
+	// Backgrounds
+	PrimitiveBackgroundColor:    tcell.NewRGBColor(40, 44, 52), // #282c34 (Main Editor Bg)
+	ContrastBackgroundColor:     tcell.NewRGBColor(33, 37, 43), // #21252b (Sidebar Bg)
+	MoreContrastBackgroundColor: tcell.NewRGBColor(44, 50, 60), // #2c323c (Selection Highlight)
 
-type screen string
+	// Borders and Accents
+	BorderColor:   tcell.NewRGBColor(97, 175, 239),  // #61afef (One Dark Blue)
+	TitleColor:    tcell.NewRGBColor(224, 108, 117), // #e06c75 (Soft Red)
+	GraphicsColor: tcell.NewRGBColor(171, 178, 191), // #abb2bf (Standard White/Gray)
 
-const (
-	screenMenu          screen = "menu"
-	screenTasks         screen = "tasks"
-	screenDelete        screen = "delete"
-	screenComplete      screen = "complete"
-	screenAddTask       screen = "addtask"
-	screenAITaskManager screen = "AITaskManager"
-)
+	// Typography / Text States
+	PrimaryTextColor:   tcell.NewRGBColor(171, 178, 191), // #abb2bf (Main text)
+	SecondaryTextColor: tcell.NewRGBColor(152, 195, 121), // #98c379 (Green / Active tabs)
+	TertiaryTextColor:  tcell.NewRGBColor(92, 99, 112),   // #5c6370 (Comments / Muted gray)
+	InverseTextColor:   tcell.NewRGBColor(40, 44, 52),    // #282c34 (Flipped dark contrast)
 
-type model struct {
-	db         *sqlx.DB
-	form       *huh.Form
-	cursor     int
-	choices    []string
-	selected   string
-	screen     screen
-	tasks      []models.Task
-	task       *models.Task
-	TaskID     int64
-	textInput  textinput.Model
-	aiSession  *aitaskmanager.Session
-	aiMessages []string
-	aiInput    textinput.Model
-	err        error
-	viewport   viewport.Model
-	ready      bool
+	// Actionable Text State Accents
+	ContrastSecondaryTextColor: tcell.NewRGBColor(229, 192, 123), // #e5c07b (Yellow Accent)
 }
 
-func initialModel(db *sqlx.DB) model {
-	ti := textinput.New()
-	ti.Placeholder = "Enter Task ID"
-	ti.CharLimit = 10
-	// ti.Focus()
+func main() {
+	tview.Styles = OneDarkProTheme
+	// Setup logging
+	logFile, err := os.OpenFile("debug_tview.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to open log file: %v\n", err)
+		os.Exit(1)
+	}
+	defer logFile.Close()
 
-	aiTi := textinput.New()
-	aiTi.Placeholder = "Enter AI request"
-	aiTi.CharLimit = 500
-	// aiTi.Focus()
+	logger := slog.New(tint.NewHandler(logFile, &tint.Options{Level: slog.LevelDebug}))
+	slog.SetDefault(logger)
 
-	vp := viewport.New(viewport.WithWidth(80), viewport.WithHeight(20))
+	// Open database
+	db := models.StartDatabase()
+	defer db.Close()
 
-	return model{
-		db:     db,
-		screen: screenMenu,
-		choices: []string{
-			"AI Task Manager",
-			"Add Task",
-			"List Tasks",
-			"Complete Task",
-			"Delete Task",
-		},
-		textInput:  ti,
-		aiInput:    aiTi,
-		aiMessages: []string{"AI Task Manager ready. Type your request"},
-		aiSession:  aitaskmanager.NewSession(db),
-		viewport:   vp,
+	// Create tview app
+	app := tview.NewApplication()
+
+	// Main menu list
+	menu := tview.NewList().
+		AddItem("AI Task Manager", "", '1', nil).
+		AddItem("Add Task", "", '2', nil).
+		AddItem("List Tasks", "", '3', nil).
+		AddItem("Complete Task", "", '4', nil).
+		AddItem("Delete Task", "", '5', nil).
+		AddItem("Quit", "", 'q', func() {
+			app.Stop()
+		})
+
+	menu.SetBorder(true).SetTitle(" GO TASK MANAGER ")
+
+	// Status bar at bottom
+	statusBar := tview.NewTextView().
+		SetText("u/d: navigate • enter: select • q: quit").
+		SetTextAlign(tview.AlignCenter)
+
+	// Layout: menu on top, status at bottom
+	mainMenu := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(menu, 0, 1, true).
+		AddItem(statusBar, 1, 0, false)
+
+	// Set up menu selection handler
+	menu.SetSelectedFunc(func(index int, name string, desc string, shortcut rune) {
+		switch index {
+		case 0: // AI Task Manager
+			showAIChat(app, db, mainMenu)
+		case 1: // Add Task
+			showAddTaskForm(app, db, mainMenu)
+		case 2: // List Tasks
+			showTaskList(app, db, mainMenu)
+		case 3: // Complete Task
+			showCompleteTask(app, db, mainMenu)
+		case 4: // Delete Task
+			showDeleteTask(app, db, mainMenu)
+		}
+	})
+
+	// Set up key handler for global keys
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			// Return to menu on ESC (handled by pages if needed)
+		}
+		return event
+	})
+
+	// Run the app
+	if err := app.SetRoot(mainMenu, true).EnableMouse(true).Run(); err != nil {
+		slog.Error("app error", "error", err)
+		os.Exit(1)
 	}
 }
 
-func (m model) Init() tea.Cmd {
-	if m.screen == screenAddTask && m.form != nil {
-		return m.form.Init()
-	}
-	return nil
-}
+// showAIChat displays the AI chat interface
+func showAIChat(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
+	session := aitaskmanager.NewSession(db)
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	slog.Debug("Update received message", "type", fmt.Sprintf("%T", msg), "msg", msg)
-	var cmd tea.Cmd
+	chatView := tview.NewTextView().
+		SetDynamicColors(true).
+		SetScrollable(true).
+		SetChangedFunc(func() {
+			app.Draw()
+		})
+	chatView.SetBorder(true).SetTitle(" AI TASK MANAGER ")
 
-	// Global keys first (ESC, quit) — works on every screen
-	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
-		switch keyMsg.String() {
-		case "esc":
-			if m.screen != screenMenu {
-				m.screen = screenMenu
-				m.tasks = nil
-				m.viewport.SetContent("")
-				m.textInput.Blur()
-				m.aiInput.Blur()
-				m.aiMessages = m.aiMessages[:0]
-				return m, nil
-			}
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		}
-	}
+	chatView.SetText("[yellow]AI Task Manager ready[white]\nType your request and press Enter.\n\n")
 
-	// Handle text input updates when on delete screen
-	if m.screen == screenDelete {
-		slog.Debug("detected delete screen and runs textInput update")
-		m.textInput, cmd = m.textInput.Update(msg)
-	}
-	// Handle text input updates when on complete screen
-	if m.screen == screenComplete {
-		slog.Debug("detected complete screen and runs textInput update")
-		m.textInput, cmd = m.textInput.Update(msg)
-	}
+	inputField := tview.NewInputField().
+		SetLabel("You: ").
+		SetFieldWidth(0)
 
-	// Handle AI Task Manager input
-	if m.screen == screenAITaskManager {
-		var aiCmd tea.Cmd
-		m.aiInput, aiCmd = m.aiInput.Update(msg) // ensures typing works
-		cmd = aiCmd
-		if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
-			switch keyMsg.String() {
-			case "enter":
-				input := strings.TrimSpace(m.aiInput.Value())
-				if input != "" && m.aiSession != nil {
-					m.aiMessages = append(m.aiMessages, "You: "+input)
-					response, err := m.aiSession.Execute(input)
-					if err != nil {
-						m.aiMessages = append(m.aiMessages, "Error: "+err.Error())
-					} else {
-						m.aiMessages = append(m.aiMessages, "Grok: "+response)
-					}
-					m.aiInput.SetValue("")
-					// NEW: History limit (prevents unbounded growth)
-					if len(m.aiMessages) > 40 {
-						m.aiMessages = m.aiMessages[len(m.aiMessages)-40:]
-					}
-				}
-
-				// return m, nil
-			case "ctrl+c", "q":
-				return m, tea.Quit
-			}
-		}
-		return m, cmd
-	}
-
-	if m.screen == screenAddTask && m.form != nil {
-		var formCmd tea.Cmd
-		updatedForm, formCmd := m.form.Update(msg)
-
-		// Update the form pointer safely
-		if f, ok := updatedForm.(*huh.Form); ok {
-			m.form = f
-		} else if f2, ok := updatedForm.(huh.Model); ok {
-			if formPtr, ok := any(f2).(*huh.Form); ok {
-				m.form = formPtr
-			}
-		}
-
-		// Handle completion FIRST (before returning any formCmd)
-		if m.form.State == huh.StateCompleted {
-			slog.Debug("Form completed - saving task", "task", fmt.Sprintf("%+v", m.task))
-
-			id := models.DBAddTask(m.db, *m.task)
-			if id == 0 {
-				m.selected = "Error saving task"
-				slog.Error("Failed to save task")
-			} else {
-				m.selected = fmt.Sprintf("✅ Task added successfully! ID: %d", id)
-				slog.Info("Task added", "id", id)
-			}
-
-			// Clean up and switch screen
-			m.task = nil
-			m.form = nil
-			m.screen = screenMenu
-			return m, nil // Important: return nil cmd so no further form updates
-		}
-
-		if m.form.State == huh.StateAborted {
-			m.selected = "Task addition cancelled"
-			m.task = nil
-			m.form = nil
-			m.screen = screenMenu
-			return m, nil
-		}
-		// Only return the form command if we're still active
-		return m, formCmd
-	}
-
-	if m.screen == screenTasks {
-		slog.Debug("task screen is active")
-	}
-
-	// main menu
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.viewport.SetWidth(msg.Width)
-		m.viewport.SetHeight(msg.Height - 10) // header/footer allowance
-		if m.screen == screenTasks {
-			m.viewport.SetContent(RenderTasks(m.tasks))
-		}
-
-	case tea.KeyPressMsg:
-		switch msg.String() {
-		case "up", "k":
-			if m.screen == screenMenu && m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.screen == screenMenu && m.cursor < len(m.choices)-1 {
-				m.cursor++
-			}
-		case "enter":
-			// call the appropriate function based on initialModel
-			switch m.screen {
-			case screenMenu:
-				switch m.cursor {
-				case 0: // AI task manager
-					if m.aiSession == nil {
-						m.aiSession = aitaskmanager.NewSession(m.db)
-						if m.aiSession == nil {
-							m.aiMessages = append(m.aiMessages, "Error: failed to initialize AI session")
-							m.screen = screenMenu
-							return m, nil
-						}
-					}
-					m.screen = screenAITaskManager
-					m.aiInput.Focus()
-					m.aiInput.SetValue("")
-					return m, nil
-				case 1: // Add task
-					slog.Debug("Enter init add task")
-					m.screen = screenAddTask
-					cmd := m.initaddTaskForm()
-					slog.Debug("Exit init add task")
-					return m, cmd
-				case 2: // List tasks
-					tasks, err := models.DBGetTasks(m.db)
-					if err != nil {
-						slog.Debug("failed to fetch tasks", "error", err)
-						m.selected = "Error fetching tasks"
-					} else {
-						m.tasks = tasks
-						m.selected = ""
-					}
-					m.aiInput.Blur() // ensure AI input is not active
-					m.textInput.Blur()
-					tea.ClearScreen()
-					m.screen = screenTasks
-					return m, nil // explicit clean return
-				case 3: // Complete Task
-					m.screen = screenComplete
-					m.textInput.Focus()
-					m.textInput.SetValue("")
-					return m, nil
-
-				case 4: // Delete task
-					m.screen = screenDelete
-					m.textInput.Focus()
-					m.textInput.SetValue("")
-					return m, nil
-				}
-			case screenDelete:
-				slog.Debug("entering delete case")
-				taskIDStr := strings.TrimSpace(m.textInput.Value())
-				if taskIDStr == "" {
-					m.selected = "Error: Task ID cannot be empty"
-					slog.Debug("error: taskID cannot be empty")
+	inputField.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyEnter {
+			input := strings.TrimSpace(inputField.GetText())
+			if input != "" && session != nil {
+				chatView.Write([]byte(fmt.Sprintf("[green]You:[white] %s\n", input)))
+				response, err := session.Execute(input)
+				if err != nil {
+					chatView.Write([]byte(fmt.Sprintf("[red]Error:[white] %s\n", err.Error())))
 				} else {
-					taskIDint, err := strconv.ParseInt(taskIDStr, 10, 64)
-					if err != nil {
-						m.selected = "Error: Task ID cannot be empty"
-					} else {
-						slog.Debug("running delete task")
-						err := models.DBDeleteTask(m.db, taskIDint) // assuming it accepts string or int
-						if err != nil {
-							slog.Debug("Error deleting task")
-							m.selected = fmt.Sprintf("Error deleting task %s: %v", taskIDStr, err)
-						} else {
-							m.selected = fmt.Sprintf("✅ Deleted task %s", taskIDStr)
-						}
-					}
+					chatView.Write([]byte(fmt.Sprintf("[cyan]Grok:[white] %s\n", response)))
 				}
-				m.screen = screenMenu
-				m.textInput.Blur()
-				m.textInput.Reset()
-				return m, nil
-			case screenComplete:
-				slog.Debug("entering complete case")
-				taskIDStr := strings.TrimSpace(m.textInput.Value())
-				if taskIDStr == "" {
-					m.selected = "Error: Task ID cannot be empty"
-					slog.Debug("error: taskID cannot be empty")
-				} else {
-					taskIDint, err := strconv.ParseInt(taskIDStr, 10, 64)
-					if err != nil {
-						m.selected = "Error: Task ID cannot be empty"
-					} else {
-						slog.Debug("running complete task")
-						err := models.DBCompleteTask(m.db, taskIDint) // assuming it accepts string or int
-						if err != nil {
-							slog.Debug("Error completing task")
-							m.selected = fmt.Sprintf("Error marking task complete %s: %v", taskIDStr, err)
-						} else {
-							m.selected = fmt.Sprintf("✅ marked task complete %s", taskIDStr)
-						}
-					}
-				}
-				m.screen = screenMenu
-				m.textInput.Blur()
-				m.textInput.Reset()
-				return m, nil
+				inputField.SetText("")
 			}
 		}
-	}
-	if m.screen == screenTasks {
-		m.viewport, cmd = m.viewport.Update(msg)
-		return m, cmd
-	}
-	return m, nil
+	})
+
+	// ESC to go back
+	inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			app.SetRoot(prevPage, true)
+			return nil
+		}
+		return event
+	})
+
+	// Status bar at bottom
+	statusBar := tview.NewTextView().
+		SetText("Type Request • enter: run • esc: Main Menu").
+		SetTextAlign(tview.AlignCenter)
+
+	chatFlex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(chatView, 0, 1, false).
+		AddItem(inputField, 1, 0, true).
+		AddItem(statusBar, 2, 0, false)
+
+	app.SetRoot(chatFlex, true)
+	inputField.SetFocusFunc(func() {
+		app.SetFocus(inputField)
+	})
 }
 
-func (m model) View() tea.View {
-	var s strings.Builder
-	switch m.screen {
-	case screenAITaskManager:
-		s.WriteString(titleStyle.Render("AI TASK MANAGER"))
-		s.WriteString("\n")
-		for _, msg := range m.aiMessages {
-			s.WriteString(itemStyle.Render(msg) + "\n")
+// showAddTaskForm displays a form to add a new task
+func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
+	form := tview.NewForm()
+	form.SetBorder(true).SetTitle(" ADD NEW TASK ")
+
+	// Task fields
+	var description, status, priority string
+	var doDateStr, finalDueDateStr, completedAtStr string
+	var startTimeStr, endTimeStr string
+	var estimatedStr, progressStr, assigneeStr, parentStr string
+
+	form.AddInputField("Description", "", 50, nil, func(text string) { description = text })
+	form.AddDropDown("Status", []string{"Pending", "In Progress", "Completed", "Blocked"}, 0, func(option string, index int) { status = option })
+	form.AddDropDown("Priority", []string{"Low", "Regular", "High", "Urgent"}, 1, func(option string, index int) { priority = option })
+	form.AddInputField("Do Date (YYYY-MM-DD)", "", 13, nil, func(text string) { doDateStr = text })
+	form.AddInputField("Final Due Date (YYYY-MM-DD)", "", 13, nil, func(text string) { finalDueDateStr = text })
+	form.AddInputField("Completed At (YYYY-MM-DD)", "", 13, nil, func(text string) { completedAtStr = text })
+	form.AddInputField("Start Time (HH:MM)", "", 13, nil, func(text string) { startTimeStr = text })
+	form.AddInputField("End Time (HH:MM)", "", 13, nil, func(text string) { endTimeStr = text })
+	form.AddInputField("Estimated Hours", "", 5, nil, func(text string) { estimatedStr = text })
+	form.AddInputField("Progress (%)", "", 3, nil, func(text string) { progressStr = text })
+	form.AddInputField("Assignee ID", "", 10, nil, func(text string) { assigneeStr = text })
+	form.AddInputField("Parent Task ID", "", 10, nil, func(text string) { parentStr = text })
+
+	form.AddButton("Save", func() {
+		task := models.Task{
+			Description: description,
+			Status:      status,
+			Priority:    priority,
+			CreatedAt:   ptr(time.Now()),
+			UpdatedAt:   ptr(time.Time{}),
 		}
-		s.WriteString("\n" + m.aiInput.View() + "\n")
-		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: send • esc: back to menu"))
-	case screenTasks:
-		// 1. Prepare the task content
-		taskContent := RenderTasks(m.tasks)
-		// 2. Load the content into the viewport
-		m.viewport.SetContent(taskContent)
-		// 3. Render the viewport with your header/footer
-		s.WriteString(titleStyle.Render("Your Tasks"))
-		s.WriteString("\n")
-		s.WriteString(m.viewport.View()) // The viewport handles the limited area
-		s.WriteString("\n\n")
-		s.WriteString(faintStyle.Render("Press 'esc' to go back to menu • Use arrows to scroll"))
-	case screenAddTask:
-		slog.Debug("enter View.screenAddTask")
-		if m.form != nil {
-			slog.Debug("task: %v", m.task)
-			s.WriteString(titleStyle.Render("ADD NEW TASK"))
-			s.WriteString("\n\n")
-			s.WriteString(m.form.View()) // ← render the huh form
-		} else {
-			s.WriteString("Loading form...")
+
+		// Parse optional date/time fields
+		if t, err := time.Parse("2006-01-02", doDateStr); err == nil {
+			task.DoDate = &t
 		}
-		slog.Debug("Exit View.screenAddTask")
-	case screenComplete:
-		s.WriteString(titleStyle.Render("COMPLETE TASK"))
-		s.WriteString("\n\n")
-		s.WriteString("Enter Task ID to mark complete:\n")
-		s.WriteString("\n\n")
-		s.WriteString(m.textInput.View())
-		s.WriteString("\n\n")
-		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: confirm esc: cancel"))
-	case screenDelete:
-		s.WriteString(titleStyle.Render("DELETE TASK"))
-		s.WriteString("\n\n")
-		s.WriteString("Enter Task ID to delete:\n")
-		s.WriteString("\n\n")
-		s.WriteString(m.textInput.View())
-		s.WriteString("\n\n")
-		s.WriteString(lipgloss.NewStyle().Faint(true).Render("enter: confirm esc: cancel"))
-	default: // menu
-		s.WriteString(titleStyle.Render("TASK MANAGER"))
-		s.WriteString("\n")
-		for i, choice := range m.choices {
-			// numbering and styling logic
-			label := fmt.Sprintf("%d. %s", i+1, choice)
-			if m.cursor == i {
-				s.WriteString(selectedItemStyle.Render("> " + label))
-			} else {
-				s.WriteString(itemStyle.Render(label))
+		if t, err := time.Parse("2006-01-02", finalDueDateStr); err == nil {
+			task.FinalDueDate = &t
+		}
+		if completedAtStr != "" {
+			if t, err := time.Parse("2006-01-02", completedAtStr); err == nil {
+				task.CompletedAt = &t
 			}
-			s.WriteString("\n")
 		}
-		s.WriteString("\n")
-		s.WriteString("\n" + lipgloss.NewStyle().Faint(true).Render("j/k: move • enter: select • q: quit"))
-	}
-	// apply a global border to the entire view
-	return tea.NewView(borderStyle.Render(s.String()))
+		if t, err := time.Parse("15:04", startTimeStr); err == nil {
+			task.StartTime = &t
+		}
+		if t, err := time.Parse("15:04", endTimeStr); err == nil {
+			task.EndTime = &t
+		}
+		if f, err := strconv.ParseFloat(estimatedStr, 64); err == nil {
+			task.EstimatedHours = &f
+		}
+		if i, err := strconv.ParseInt(progressStr, 10, 64); err == nil {
+			task.Progress = &i
+		}
+		if i, err := strconv.ParseInt(assigneeStr, 10, 64); err == nil {
+			task.AssigneeID = &i
+		}
+		if i, err := strconv.ParseInt(parentStr, 10, 64); err == nil {
+			task.ParentTaskID = &i
+		}
+
+		id, err := models.DBAddTask(db, task)
+		if err != nil {
+			errString := fmt.Sprintf("Error: %v", err)
+			modal := tview.NewModal().
+				SetText(errString).
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+		} else {
+			modal := tview.NewModal().
+				SetText(fmt.Sprintf("✅ Task added successfully! ID: %d", id)).
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+		}
+	})
+
+	form.AddButton("Cancel", func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	form.SetCancelFunc(func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	app.SetRoot(form, true)
 }
 
-func RenderTasks(tasks []models.Task) string {
-	var s strings.Builder
-	s.WriteString(titleStyle.Render("TASKS"))
-	s.WriteString("\n\n")
-
-	if len(tasks) == 0 {
-		s.WriteString(itemStyle.Render("No tasks found."))
-		s.WriteString("\n")
-		return s.String()
-	}
-	for _, task := range tasks {
-		var dateStr string
-		if task.FinalDueDate != nil {
-			dateStr = task.FinalDueDate.Format("2006-01-02")
-		} else {
-			dateStr = ""
-		}
-		var TaskIDStr string
-		if task.TaskID != nil {
-			TaskIDStr = fmt.Sprintf("%d", *task.TaskID)
-		} else {
-			TaskIDStr = ""
-		}
-		row := fmt.Sprintf("%s  %s  %s  %s", TaskIDStr, task.Status, task.Description, dateStr)
-		s.WriteString(selectedItemStyle.Render(row))
-		s.WriteString("\n\n")
-	}
-	return s.String()
-}
-
-//	type Task struct {
-//		TaskID         *int64     `db:"task_id"`
-//		Description    string     `db:"description"`
-//		Status         string     `db:"status"`
-//		CreatedAt      *time.Time `db:"created_at"`
-//		UpdatedAt      *time.Time `db:"updated_at"`
-//		Priority       string     `db:"priority"`
-//		AssigneeID     *int64     `db:"assignee_id"`
-//		DoDate         *time.Time `db:"do_date"`
-//		FinalDueDate   *time.Time `db:"final_due_date"`
-//		StartTime      *time.Time `db:"start_time"`
-//		EndTime        *time.Time `db:"end_time"`
-//		CompletedAt    *time.Time `db:"completed_at"`
-//		EstimatedHours *float64   `db:"estimated_hours"`
-//		Progress       *int64     `db:"progress"`
-//		ParentTaskID   *int64     `db:"parent_task_id"`
-//	}
-//
-// ptr returns a pointer to the given value (very useful for *time.Time, *int, etc.)
+// ptr is a helper to get pointers to values
 func ptr[T any](v T) *T {
 	return &v
 }
 
-func (m *model) initaddTaskForm() tea.Cmd {
-	slog.Debug("entering initaddTaskForm")
-	m.task = &models.Task{
-		Description:    "",
-		Status:         "Pending",
-		CreatedAt:      ptr(time.Now()),
-		UpdatedAt:      ptr(time.Time{}), // zero value
-		Priority:       "Regular",
-		AssigneeID:     nil,
-		DoDate:         ptr(time.Now().AddDate(0, 0, 7)),
-		FinalDueDate:   ptr(time.Now().AddDate(0, 0, 14)),
-		StartTime:      ptr(time.Time{}), // zero value
-		EndTime:        ptr(time.Time{}),
-		CompletedAt:    ptr(time.Time{}),
-		EstimatedHours: ptr[float64](4),
-		Progress:       ptr[int64](0),
-		ParentTaskID:   nil,
-		// add other default fields here
-	}
-	slog.Debug("initaddTaskForm task that has been created %v", m.task)
-	var (
-		doDateStr       = datePtrToString(m.task.DoDate)
-		finalDueDateStr = datePtrToString(m.task.FinalDueDate)
-		completedAtStr  = datePtrToString(m.task.CompletedAt)
-		startTimeStr    = timePtrToString(m.task.StartTime)
-		endTimeStr      = timePtrToString(m.task.EndTime)
-		estimatedStr    = floatPtrToString(m.task.EstimatedHours)
-		progressStr     = int64PtrToString(m.task.Progress)
-		assigneeStr     = int64PtrToString(m.task.AssigneeID)
-		parentStr       = int64PtrToString(m.task.ParentTaskID)
-	)
-	m.form = huh.NewForm(
-		huh.NewGroup(
-			huh.NewInput().
-				Title("Description").
-				Value(&m.task.Description).
-				Validate(func(s string) error {
-					if strings.TrimSpace(s) == "" {
-						return fmt.Errorf("description cannot be empty")
-					}
-					return nil
-				}),
-			huh.NewSelect[string]().
-				Title("Status").
-				Options(
-					huh.NewOption("Pending", "Pending"),
-					huh.NewOption("In Progress", "In Progress"),
-					huh.NewOption("Completed", "Completed"),
-					huh.NewOption("Blocked", "Blocked"),
-				).
-				Value(&m.task.Status),
-
-			huh.NewSelect[string]().
-				Title("Priority").
-				Options(
-					huh.NewOption("Low", "Low"),
-					huh.NewOption("Regular", "Regular"),
-					huh.NewOption("High", "High"),
-					huh.NewOption("Urgent", "Urgent"),
-				).
-				Value(&m.task.Priority),
-
-			// Dates
-			huh.NewInput().
-				Title("Do Date (YYYY-MM-DD)").
-				Placeholder("2026-04-26").
-				Value(&doDateStr).
-				Validate(validateDate),
-
-			huh.NewInput().
-				Title("Final Due Date (YYYY-MM-DD)").
-				Placeholder("2026-05-03").
-				Value(&finalDueDateStr).
-				Validate(validateDate),
-
-			huh.NewInput().
-				Title("Completed At (YYYY-MM-DD)").
-				Placeholder("leave empty if not completed").
-				Value(&completedAtStr).
-				Validate(validateDateOptional),
-
-			// Times
-			huh.NewInput().
-				Title("Start Time (HH:MM)").
-				Placeholder("09:00").
-				Value(&startTimeStr).
-				Validate(validateTimeOptional),
-
-			huh.NewInput().
-				Title("End Time (HH:MM)").
-				Placeholder("17:00").
-				Value(&endTimeStr).
-				Validate(validateTimeOptional),
-
-			// Numbers & IDs
-			huh.NewInput().
-				Title("Estimated Hours").
-				Placeholder("1.0").
-				Value(&estimatedStr).
-				Validate(validateFloat),
-
-			huh.NewInput().
-				Title("Progress (%)").
-				Placeholder("0").
-				Value(&progressStr).
-				Validate(validateProgress),
-
-			huh.NewInput().
-				Title("Assignee ID (optional)").
-				Placeholder("ID").
-				Value(&assigneeStr),
-
-			huh.NewInput().
-				Title("Parent Task ID (optional)").
-				Placeholder("leave empty for top-level task").
-				Value(&parentStr),
-		),
-		// add new fields here
-	)
-
-	slog.Debug("task ", "task", m.task)
-	return m.form.Init()
-}
-
-// === Pointer <-> String converters ===
-func datePtrToString(t *time.Time) string {
-	if t == nil || t.IsZero() {
-		return ""
-	}
-	return t.Format("2006-01-02")
-}
-
-func timePtrToString(t *time.Time) string {
-	if t == nil || t.IsZero() {
-		return ""
-	}
-	return t.Format("15:04")
-}
-
-func floatPtrToString(f *float64) string {
-	if f == nil {
-		return ""
-	}
-	return fmt.Sprintf("%.1f", *f)
-}
-
-func int64PtrToString(i *int64) string {
-	if i == nil {
-		return ""
-	}
-	return fmt.Sprintf("%d", *i)
-}
-
-// === Validators ===
-func validateDate(s string) error {
-	if _, err := time.Parse("2006-01-02", s); err != nil {
-		return fmt.Errorf("invalid date (use YYYY-MM-DD)")
-	}
-	return nil
-}
-
-func validateDateOptional(s string) error {
-	if s == "" {
-		return nil
-	}
-	return validateDate(s)
-}
-
-func validateTimeOptional(s string) error {
-	if s == "" {
-		return nil
-	}
-	if _, err := time.Parse("15:04", s); err != nil {
-		return fmt.Errorf("invalid time (use HH:MM)")
-	}
-	return nil
-}
-
-func validateFloat(s string) error {
-	if s == "" {
-		return nil
-	}
-	if _, err := strconv.ParseFloat(s, 64); err != nil {
-		return fmt.Errorf("must be a number")
-	}
-	return nil
-}
-
-func validateProgress(s string) error {
-	if s == "" {
-		return nil
-	}
-	v, err := strconv.ParseInt(s, 10, 64)
-	if err != nil || v < 0 || v > 100 {
-		return fmt.Errorf("must be 0-100")
-	}
-	return nil
-}
-
-func main() {
-	// Open (or create) a log file
-	// tail -f debug.log to see the log in real time in another terminal
-	// Open (or create) the log file
-	logFile, err := os.OpenFile("debug.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
+// showTaskList displays all tasks in a table
+func showTaskList(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
+	tasks, err := models.DBGetTasks(db)
 	if err != nil {
-		log.Fatal("Failed to open log file:", err)
+		modal := tview.NewModal().
+			SetText(fmt.Sprintf("Error fetching tasks: %v", err)).
+			AddButtons([]string{"OK"}).
+			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+				app.SetRoot(prevPage, true)
+			})
+		app.SetRoot(modal, true)
+		return
 	}
-	defer logFile.Close()
 
-	// Create a tinted handler that writes to the file
-	logger := slog.New(tint.NewHandler(logFile, &tint.Options{
-		Level:      slog.LevelDebug, // or slog.LevelInfo in production
-		TimeFormat: time.DateTime,   // or time.RFC3339, time.Stamp, etc.
-		AddSource:  true,            // shows file:line like your original
-		// NoColor: false,               // default = true (colors enabled)
-	}))
+	table := tview.NewTable().
+		SetBorders(true).
+		SetSelectable(true, false)
 
-	slog.SetDefault(logger)
-
-	slog.Info("Task manager started", "version", "1.0.0")
-	slog.Debug("Debug info", "cursor", 3, "screen", "tasks")
-
-	db := models.StartDatabase()
-	defer db.Close() // close the database when main() finishes
-	if _, err := tea.NewProgram(initialModel(db)).Run(); err != nil {
-		log.Fatal(err)
+	// Header
+	headers := []string{"ID", "Description", "Status", "Priority", "Due Date"}
+	for col, header := range headers {
+		table.SetCell(0, col, tview.NewTableCell(header).
+			SetTextColor(tcell.ColorYellow).
+			SetSelectable(false).
+			SetAlign(tview.AlignCenter))
 	}
+
+	// Data rows
+	for row, task := range tasks {
+		dueDate := ""
+		if task.FinalDueDate != nil {
+			dueDate = task.FinalDueDate.Format("2006-01-02")
+		}
+		table.SetCell(row+1, 0, tview.NewTableCell(fmt.Sprintf("%d", *task.TaskID)))
+		table.SetCell(row+1, 1, tview.NewTableCell(task.Description))
+		table.SetCell(row+1, 2, tview.NewTableCell(task.Status))
+		table.SetCell(row+1, 3, tview.NewTableCell(task.Priority))
+		table.SetCell(row+1, 4, tview.NewTableCell(dueDate))
+	}
+
+	table.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyEscape {
+			app.SetRoot(prevPage, true)
+		}
+	})
+
+	table.SetBorder(true).SetTitle(" YOUR TASKS (ESC to return) ")
+
+	app.SetRoot(table, true)
+}
+
+// showCompleteTask shows a form to mark a task complete
+func showCompleteTask(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
+	form := tview.NewForm()
+	form.SetBorder(true).SetTitle(" COMPLETE TASK ")
+
+	var taskIDStr string
+	form.AddInputField("Task ID", "", 10, nil, func(text string) { taskIDStr = text })
+	form.AddButton("Complete", func() {
+		taskIDint, err := strconv.ParseInt(strings.TrimSpace(taskIDStr), 10, 64)
+		if err != nil {
+			modal := tview.NewModal().
+				SetText("Error: Invalid Task ID").
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+			return
+		}
+
+		err = models.DBCompleteTask(db, taskIDint)
+		if err != nil {
+			modal := tview.NewModal().
+				SetText(fmt.Sprintf("Error completing task: %v", err)).
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+		} else {
+			modal := tview.NewModal().
+				SetText(fmt.Sprintf("✅ Marked task %d complete", taskIDint)).
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+		}
+	})
+
+	form.AddButton("Cancel", func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	form.SetCancelFunc(func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	app.SetRoot(form, true)
+}
+
+// showDeleteTask shows a form to delete a task
+func showDeleteTask(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
+	form := tview.NewForm()
+	form.SetBorder(true).SetTitle(" DELETE TASK ")
+
+	var taskIDStr string
+	form.AddInputField("Task ID", "", 10, nil, func(text string) { taskIDStr = text })
+
+	form.AddButton("Delete", func() {
+		taskIDint, err := strconv.ParseInt(strings.TrimSpace(taskIDStr), 10, 64)
+		if err != nil {
+			modal := tview.NewModal().
+				SetText("Error: Invalid Task ID").
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+			return
+		}
+
+		err = models.DBDeleteTask(db, taskIDint)
+		if err != nil {
+			modal := tview.NewModal().
+				SetText(fmt.Sprintf("Error deleting task: %v", err)).
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+		} else {
+			modal := tview.NewModal().
+				SetText(fmt.Sprintf("✅ Deleted task %d", taskIDint)).
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+		}
+	})
+
+	form.AddButton("Cancel", func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	form.SetCancelFunc(func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	app.SetRoot(form, true)
 }
