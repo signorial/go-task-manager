@@ -116,7 +116,15 @@ func main() {
 
 // showAIChat displays the AI chat interface
 func showAIChat(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
-	session := aitaskmanager.NewSession(db)
+	session, err := aitaskmanager.NewSession(db)
+	if err != nil {
+		modal := tview.NewModal().
+			SetText(fmt.Sprintf("Failed to start AI session: %v", err)).
+			AddButtons([]string{"OK"}).
+			SetDoneFunc(func(int, string) { app.SetRoot(prevPage, true) })
+		app.SetRoot(modal, true)
+		return
+	}
 
 	chatView := tview.NewTextView().
 		SetDynamicColors(true).
@@ -129,7 +137,7 @@ func showAIChat(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
 	chatView.SetText("[yellow]AI Task Manager ready[white]\nType your request and press Enter.\n\n")
 
 	inputField := tview.NewInputField().
-		SetLabel("You: ").
+		SetLabel("Enter Request: ").
 		SetFieldWidth(0)
 
 	inputField.SetDoneFunc(func(key tcell.Key) {
