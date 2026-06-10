@@ -17,6 +17,17 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+func parseTimePtr(s *string) *time.Time {
+	if s == nil || *s == "" {
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339, *s)
+	if err != nil {
+		return nil // or return &t with zero value + logged warning
+	}
+	return &t
+}
+
 type Session struct {
 	ctx        context.Context
 	grokPrompt ai.Prompt
@@ -61,7 +72,8 @@ func NewSession(db *sqlx.DB) (*Session, error) {
 			}
 			slog.Debug("EXIT AIListTasks")
 			return tasks, nil
-		})
+		},
+	)
 
 	AIDeleteTask := genkit.DefineTool(
 		g,
@@ -79,7 +91,8 @@ func NewSession(db *sqlx.DB) (*Session, error) {
 			}
 			slog.Debug("EXIT AIDeleteTask")
 			return true, nil
-		})
+		},
+	)
 
 	AIGetTask := genkit.DefineTool(
 		g,
@@ -97,7 +110,8 @@ func NewSession(db *sqlx.DB) (*Session, error) {
 			}
 			slog.Debug("EXIT AIGetTask")
 			return task, nil
-		})
+		},
+	)
 
 	AICompleteTask := genkit.DefineTool(
 		g,
@@ -115,43 +129,50 @@ func NewSession(db *sqlx.DB) (*Session, error) {
 			}
 			slog.Debug("EXIT AICompleteTask")
 			return true, nil
-		})
+		},
+	)
+
+	type AddTaskInput struct {
+		Description    string   `json:"description" jsonschema_description:"Detailed task description"`
+		Status         string   `json:"status,omitempty"`
+		CreatedAt      *string  `json:"date the task was created`
+		UpdatedAt      *string  `json:"date the task was updated`
+		Priority       string   `json:"priority,omitempty"`
+		AssigneeID     *int64   `json:"assignee_id,omitempty"`
+		DoDate         *string  `json:"do_date,omitempty"` // RFC3339 or null
+		FinalDueDate   *string  `json:"final_due_date,omitempty"`
+		StartTime      *string  `json:"start_time,omitempty"`
+		EndTime        *string  `json:"end_time,omitempty"`
+		CompletedAt    *string  `json:"completed_at,omitempty"`
+		EstimatedHours *float64 `json:"estimated_hours,omitempty"`
+		Progress       *int64   `json:"progress,omitempty"`
+		ParentTaskID   *int64   `json:"parent_task_id,omitempty"`
+	}
 
 	AIAddTask := genkit.DefineTool(
 		g,
 		"AIAddTask",
 		`Adds a new task to the database.`,
-		func(ctx *ai.ToolContext, input struct {
-			Description    string   `jsonschema_description:"Task description"`
-			Status         string   `jsonschema_description:"Task status"`
-			Priority       string   `jsonschema_description:"Task priority"`
-			DoDate         *string  `jsonschema_description:"Optional do date in RFC3339"`
-			FinalDueDate   *string  `jsonschema_description:"Optional final due date in RFC3339"`
-			EstimatedHours *float64 `jsonschema_description:"Optional estimated hours"`
-		},
-		) (int64, error) {
+		func(ctx *ai.ToolContext, input AddTaskInput) (int64, error) {
 			slog.Debug("ENTER AIAddTask")
 
 			task := models.Task{
-				Description: input.Description,
-				Status:      input.Status,
-				Priority:    input.Priority,
+				Description:    input.Description,
+				Status:         input.Status,
+				CreatedAt:      parseTimePtr(input.CreatedAt),
+				UpdatedAt:      parseTimePtr(input.UpdatedAt),
+				Priority:       input.Priority,
+				AssigneeID:     input.AssigneeID,
+				DoDate:         parseTimePtr(input.DoDate),
+				FinalDueDate:   parseTimePtr(input.FinalDueDate),
+				StartTime:      parseTimePtr(input.StartTime),
+				EndTime:        parseTimePtr(input.EndTime),
+				CompletedAt:    parseTimePtr(input.CompletedAt),
+				EstimatedHours: input.EstimatedHours,
+				Progress:       input.Progress,
+				ParentTaskID:   input.ParentTaskID,
+				// CreatedAt/UpdatedAt left nil (DBAddTask or trigger can set)
 			}
-
-			if input.DoDate != nil {
-				if t, err := time.Parse(time.RFC3339, *input.DoDate); err == nil {
-					task.DoDate = &t
-				}
-			}
-			if input.FinalDueDate != nil {
-				if t, err := time.Parse(time.RFC3339, *input.FinalDueDate); err == nil {
-					task.FinalDueDate = &t
-				}
-			}
-			if input.EstimatedHours != nil {
-				task.EstimatedHours = input.EstimatedHours
-			}
-
 			id, err := models.DBAddTask(db, task)
 			if err != nil {
 				slog.Debug("failed to insert task %v", err)

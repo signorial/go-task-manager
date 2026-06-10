@@ -22,7 +22,7 @@ type Task struct {
 	StartTime      *time.Time `db:"start_time":      json:"start_time"      jsonschema_description:"The time that the user is scheduled to star working on the task . RFC3339 format. eg. 2026-04-30T23:59:59Z"`
 	EndTime        *time.Time `db:"end_time":        json:"end_time"        jsonschema_description:"The time that the user is scheduled to star working on the task . RFC3339 format. eg. 2026-04-30T23:59:59Z"`
 	CompletedAt    *time.Time `db:"completed_at":    json:"completed_at"    jsonschema_description:"The time that the user is scheduled to  . RFC3339 format. eg. 2026-04-30T23:59:59Z"`
-	EstimatedHours *int64     `db:"estimated_hours": json:"estimated_hours" jsonschema_description:"Estimated hours to complete the task based on task description"`
+	EstimatedHours *float64   `db:"estimated_hours": json:"estimated_hours" jsonschema_description:"Estimated hours to complete the task based on task description"`
 	Progress       *int64     `db:"progress":        json:"progress"        jsonschema_description:"Progress percentage (0-100)"`
 	ParentTaskID   *int64     `db:"parent_task_id":  json:"parent_task_id"  jsonschema_description:"ID of parent task if this is a subtask. leave blank if this is not a subtask"`
 }
@@ -45,10 +45,10 @@ func StartDatabase() (*sqlx.DB, error) {
 		assignee_id      INTEGER,
 		do_date          DATETIME,
 		final_due_date   DATETIME,
-		StartTime        DATETIME,
+		start_time        DATETIME,
 		end_time         DATETIME,
 		completed_at     DATETIME,
-		estimated_hours  INTEGER,
+		estimated_hours  FLOAT,
 		progress         INTEGER,
 		parent_task_id   INTEGER
 
@@ -72,7 +72,7 @@ func DBGetTasks(db *sqlx.DB) ([]Task, error) {
 func DBGetTask(db *sqlx.DB, taskID int64) (Task, error) {
 	var task Task
 	query := `SELECT * FROM tasks WHERE task_id =?`
-	err := db.Select(&task, query)
+	err := db.Get(&task, query, taskID)
 	if err != nil {
 		return task, err
 	}
@@ -80,13 +80,13 @@ func DBGetTask(db *sqlx.DB, taskID int64) (Task, error) {
 }
 
 func DBDeleteTask(db *sqlx.DB, taskID int64) error {
-	query := `DELETE FROM tasks WHERE task_id=?`
 	// check if task has already been deleted
 	_, err := DBGetTask(db, taskID)
 	if err != nil {
-		return fmt.Errorf("wrong ID or task has already been deleted %d", taskID)
+		return fmt.Errorf("wrong ID or task has already been deleted %d %v", taskID, err)
 	}
 
+	query := `DELETE FROM tasks WHERE task_id=?`
 	_, err = db.Exec(query, taskID)
 	if err != nil {
 		return err

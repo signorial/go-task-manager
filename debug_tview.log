@@ -31,3 +31,146 @@
 [2mJun  9 10:56:59.988[0m DBG span end [2mname=[0mxai/grok-3
 [2mJun  9 10:56:59.988[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
 [2mJun  9 10:56:59.988[0m DBG span end [2mname=[0mgenerate
+[2mJun 10 12:54:37.539[0m DBG RegisterPlugin [2mname=[0mxai
+[2mJun 10 12:54:37.539[0m DBG RegisterValue [2mname=[0m/format/text
+[2mJun 10 12:54:37.539[0m DBG RegisterValue [2mname=[0m/format/json
+[2mJun 10 12:54:37.539[0m DBG RegisterValue [2mname=[0m/format/jsonl
+[2mJun 10 12:54:37.539[0m DBG RegisterValue [2mname=[0m/format/array
+[2mJun 10 12:54:37.539[0m DBG RegisterValue [2mname=[0m/format/enum
+[2mJun 10 12:54:37.540[0m DBG RegisterAction [2mkey=[0m/util/generate
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/executable-prompt/grok_chat
+[2mJun 10 12:54:37.541[0m DBG Registered Dotprompt [2mname=[0mgrok_chat [2mfile=[0mgrok_chat.prompt
+[2mJun 10 12:54:37.541[0m DBG RegisterValue [2mname=[0mgenkit/defaultModel
+[2mJun 10 12:54:37.541[0m DBG RegisterValue [2mname=[0mgenkit/promptDir
+[2mJun 10 12:54:37.541[0m DBG RegisterSchema [2mname=[0mTask
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIListTasks
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/tool/AIListTasks
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIDeleteTask
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/tool/AIDeleteTask
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIGetTask
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/tool/AIGetTask
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/tool.v2/AICompleteTask
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/tool/AICompleteTask
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIAddTask
+[2mJun 10 12:54:37.541[0m DBG RegisterAction [2mkey=[0m/tool/AIAddTask
+[2mJun 10 12:55:13.501[0m DBG Action.Run [2mname=[0mgrok_chat
+[2mJun 10 12:55:13.501[0m DBG span start [2mname=[0mgrok_chat
+[2mJun 10 12:55:13.502[0m DBG span end [2mname=[0mgrok_chat
+[2mJun 10 12:55:13.502[0m DBG Action.Run [2mname=[0mgrok_chat [2merr=[0m<nil>
+[2mJun 10 12:55:13.503[0m DBG RegisterAction [2mkey=[0m/model/xai/grok-3
+[2mJun 10 12:55:13.503[0m DBG span start [2mname=[0mgenerate
+[2mJun 10 12:55:13.503[0m DBG Action.Run [2mname=[0mxai/grok-3
+[2mJun 10 12:55:13.503[0m DBG span start [2mname=[0mxai/grok-3
+[2mJun 10 12:55:26.709[0m DBG span end [2mname=[0mxai/grok-3
+[2mJun 10 12:55:26.709[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
+[2mJun 10 12:55:26.709[0m DBG span end [2mname=[0mgenerate
+[2mJun 10 13:46:12.894[0m DBG RegisterPlugin [2mname=[0mxai
+[2mJun 10 13:46:12.894[0m DBG RegisterValue [2mname=[0m/format/text
+[2mJun 10 13:46:12.894[0m DBG RegisterValue [2mname=[0m/format/json
+[2mJun 10 13:46:12.894[0m DBG RegisterValue [2mname=[0m/format/jsonl
+[2mJun 10 13:46:12.894[0m DBG RegisterValue [2mname=[0m/format/array
+[2mJun 10 13:46:12.894[0m DBG RegisterValue [2mname=[0m/format/enum
+[2mJun 10 13:46:12.895[0m DBG RegisterAction [2mkey=[0m/util/generate
+[2mJun 10 13:46:12.895[0m DBG RegisterAction [2mkey=[0m/executable-prompt/grok_chat
+[2mJun 10 13:46:12.895[0m DBG Registered Dotprompt [2mname=[0mgrok_chat [2mfile=[0mgrok_chat.prompt
+[2mJun 10 13:46:12.895[0m DBG RegisterValue [2mname=[0mgenkit/defaultModel
+[2mJun 10 13:46:12.895[0m DBG RegisterValue [2mname=[0mgenkit/promptDir
+[2mJun 10 13:46:12.895[0m DBG RegisterSchema [2mname=[0mTask
+[2mJun 10 13:46:12.896[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIListTasks
+[2mJun 10 13:46:12.896[0m DBG RegisterAction [2mkey=[0m/tool/AIListTasks
+[2mJun 10 13:46:12.896[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIDeleteTask
+[2mJun 10 13:46:12.896[0m DBG RegisterAction [2mkey=[0m/tool/AIDeleteTask
+[2mJun 10 13:46:12.896[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIGetTask
+[2mJun 10 13:46:12.896[0m DBG RegisterAction [2mkey=[0m/tool/AIGetTask
+[2mJun 10 13:46:12.896[0m DBG RegisterAction [2mkey=[0m/tool.v2/AICompleteTask
+[2mJun 10 13:46:12.896[0m DBG RegisterAction [2mkey=[0m/tool/AICompleteTask
+[2mJun 10 13:46:12.897[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIAddTask
+[2mJun 10 13:46:12.897[0m DBG RegisterAction [2mkey=[0m/tool/AIAddTask
+[2mJun 10 13:46:50.940[0m DBG Action.Run [2mname=[0mgrok_chat
+[2mJun 10 13:46:50.940[0m DBG span start [2mname=[0mgrok_chat
+[2mJun 10 13:46:50.941[0m DBG span end [2mname=[0mgrok_chat
+[2mJun 10 13:46:50.941[0m DBG Action.Run [2mname=[0mgrok_chat [2merr=[0m<nil>
+[2mJun 10 13:46:50.942[0m DBG RegisterAction [2mkey=[0m/model/xai/grok-3
+[2mJun 10 13:46:50.942[0m DBG span start [2mname=[0mgenerate
+[2mJun 10 13:46:50.942[0m DBG Action.Run [2mname=[0mxai/grok-3
+[2mJun 10 13:46:50.942[0m DBG span start [2mname=[0mxai/grok-3
+[2mJun 10 13:46:57.664[0m DBG span end [2mname=[0mxai/grok-3
+[2mJun 10 13:46:57.664[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
+[2mJun 10 13:46:57.665[0m DBG span end [2mname=[0mgenerate
+[2mJun 10 13:47:23.092[0m DBG Action.Run [2mname=[0mgrok_chat
+[2mJun 10 13:47:23.093[0m DBG span start [2mname=[0mgrok_chat
+[2mJun 10 13:47:23.093[0m DBG span end [2mname=[0mgrok_chat
+[2mJun 10 13:47:23.093[0m DBG Action.Run [2mname=[0mgrok_chat [2merr=[0m<nil>
+[2mJun 10 13:47:23.093[0m DBG span start [2mname=[0mgenerate
+[2mJun 10 13:47:23.093[0m DBG Action.Run [2mname=[0mxai/grok-3
+[2mJun 10 13:47:23.093[0m DBG span start [2mname=[0mxai/grok-3
+[2mJun 10 13:47:28.479[0m DBG span end [2mname=[0mxai/grok-3
+[2mJun 10 13:47:28.479[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
+[2mJun 10 13:47:28.479[0m DBG span end [2mname=[0mgenerate
+[2mJun 10 13:47:47.288[0m DBG Action.Run [2mname=[0mgrok_chat
+[2mJun 10 13:47:47.288[0m DBG span start [2mname=[0mgrok_chat
+[2mJun 10 13:47:47.290[0m DBG span end [2mname=[0mgrok_chat
+[2mJun 10 13:47:47.290[0m DBG Action.Run [2mname=[0mgrok_chat [2merr=[0m<nil>
+[2mJun 10 13:47:47.290[0m DBG span start [2mname=[0mgenerate
+[2mJun 10 13:47:47.290[0m DBG Action.Run [2mname=[0mxai/grok-3
+[2mJun 10 13:47:47.290[0m DBG span start [2mname=[0mxai/grok-3
+[2mJun 10 13:47:50.657[0m DBG span end [2mname=[0mxai/grok-3
+[2mJun 10 13:47:50.657[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
+[2mJun 10 13:47:50.657[0m DBG Action.Run [2mname=[0mAIAddTask
+[2mJun 10 13:47:50.657[0m DBG span start [2mname=[0mAIAddTask
+[2mJun 10 13:47:50.657[0m DBG ENTER AIAddTask
+[2mJun 10 13:47:50.679[0m DBG EXIT AIAddTask
+[2mJun 10 13:47:50.679[0m DBG span end [2mname=[0mAIAddTask
+[2mJun 10 13:47:50.679[0m DBG Action.Run [2mname=[0mAIAddTask [2merr=[0m<nil>
+[2mJun 10 13:47:50.679[0m DBG span start [2mname=[0mgenerate
+[2mJun 10 13:47:50.679[0m DBG Action.Run [2mname=[0mxai/grok-3
+[2mJun 10 13:47:50.679[0m DBG span start [2mname=[0mxai/grok-3
+[2mJun 10 13:47:51.603[0m DBG span end [2mname=[0mxai/grok-3
+[2mJun 10 13:47:51.603[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
+[2mJun 10 13:47:51.603[0m DBG span end [2mname=[0mgenerate
+[2mJun 10 13:47:51.604[0m DBG span end [2mname=[0mgenerate
+[2mJun 10 14:17:27.944[0m DBG RegisterPlugin [2mname=[0mxai
+[2mJun 10 14:17:27.944[0m DBG RegisterValue [2mname=[0m/format/text
+[2mJun 10 14:17:27.944[0m DBG RegisterValue [2mname=[0m/format/json
+[2mJun 10 14:17:27.944[0m DBG RegisterValue [2mname=[0m/format/jsonl
+[2mJun 10 14:17:27.944[0m DBG RegisterValue [2mname=[0m/format/array
+[2mJun 10 14:17:27.944[0m DBG RegisterValue [2mname=[0m/format/enum
+[2mJun 10 14:17:27.944[0m DBG RegisterAction [2mkey=[0m/util/generate
+[2mJun 10 14:17:27.945[0m DBG RegisterAction [2mkey=[0m/executable-prompt/grok_chat
+[2mJun 10 14:17:27.945[0m DBG Registered Dotprompt [2mname=[0mgrok_chat [2mfile=[0mgrok_chat.prompt
+[2mJun 10 14:17:27.945[0m DBG RegisterValue [2mname=[0mgenkit/defaultModel
+[2mJun 10 14:17:27.945[0m DBG RegisterValue [2mname=[0mgenkit/promptDir
+[2mJun 10 14:17:27.945[0m DBG RegisterSchema [2mname=[0mTask
+[2mJun 10 14:17:27.945[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIListTasks
+[2mJun 10 14:17:27.945[0m DBG RegisterAction [2mkey=[0m/tool/AIListTasks
+[2mJun 10 14:17:27.945[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIDeleteTask
+[2mJun 10 14:17:27.945[0m DBG RegisterAction [2mkey=[0m/tool/AIDeleteTask
+[2mJun 10 14:17:27.945[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIGetTask
+[2mJun 10 14:17:27.945[0m DBG RegisterAction [2mkey=[0m/tool/AIGetTask
+[2mJun 10 14:17:27.946[0m DBG RegisterAction [2mkey=[0m/tool.v2/AICompleteTask
+[2mJun 10 14:17:27.946[0m DBG RegisterAction [2mkey=[0m/tool/AICompleteTask
+[2mJun 10 14:17:27.946[0m DBG RegisterAction [2mkey=[0m/tool.v2/AIAddTask
+[2mJun 10 14:17:27.946[0m DBG RegisterAction [2mkey=[0m/tool/AIAddTask
+[2mJun 10 14:18:19.775[0m DBG Action.Run [2mname=[0mgrok_chat
+[2mJun 10 14:18:19.775[0m DBG span start [2mname=[0mgrok_chat
+[2mJun 10 14:18:19.776[0m DBG span end [2mname=[0mgrok_chat
+[2mJun 10 14:18:19.776[0m DBG Action.Run [2mname=[0mgrok_chat [2merr=[0m<nil>
+[2mJun 10 14:18:19.777[0m DBG RegisterAction [2mkey=[0m/model/xai/grok-3
+[2mJun 10 14:18:19.777[0m DBG span start [2mname=[0mgenerate
+[2mJun 10 14:18:19.777[0m DBG Action.Run [2mname=[0mxai/grok-3
+[2mJun 10 14:18:19.777[0m DBG span start [2mname=[0mxai/grok-3
+[2mJun 10 14:18:25.041[0m DBG span end [2mname=[0mxai/grok-3
+[2mJun 10 14:18:25.041[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
+[2mJun 10 14:18:25.041[0m DBG Action.Run [2mname=[0mAIAddTask
+[2mJun 10 14:18:25.041[0m DBG span start [2mname=[0mAIAddTask
+[2mJun 10 14:18:25.042[0m DBG ENTER AIAddTask
+[2mJun 10 14:18:25.062[0m DBG EXIT AIAddTask
+[2mJun 10 14:18:25.062[0m DBG span end [2mname=[0mAIAddTask
+[2mJun 10 14:18:25.062[0m DBG Action.Run [2mname=[0mAIAddTask [2merr=[0m<nil>
+[2mJun 10 14:18:25.062[0m DBG span start [2mname=[0mgenerate
+[2mJun 10 14:18:25.062[0m DBG Action.Run [2mname=[0mxai/grok-3
+[2mJun 10 14:18:25.062[0m DBG span start [2mname=[0mxai/grok-3
+[2mJun 10 14:18:26.290[0m DBG span end [2mname=[0mxai/grok-3
+[2mJun 10 14:18:26.290[0m DBG Action.Run [2mname=[0mxai/grok-3 [2merr=[0m<nil>
+[2mJun 10 14:18:26.290[0m DBG span end [2mname=[0mgenerate
+[2mJun 10 14:18:26.290[0m DBG span end [2mname=[0mgenerate

@@ -53,7 +53,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	// Open database
-	db := models.StartDatabase()
+	db, err := models.StartDatabase()
 	defer db.Close()
 
 	// Create tview app
@@ -283,6 +283,28 @@ func ptr[T any](v T) *T {
 	return &v
 }
 
+// helper functions
+func fmtTime(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format("2006-01-02 15:04")
+}
+
+func fmtInt64(i *int64) string {
+	if i == nil {
+		return ""
+	}
+	return fmt.Sprintf("%d", *i)
+}
+
+func fmtFloat64(f *float64) string {
+	if f == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.1f", *f)
+}
+
 // showTaskList displays all tasks in a table
 func showTaskList(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
 	tasks, err := models.DBGetTasks(db)
@@ -301,26 +323,27 @@ func showTaskList(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive)
 		SetBorders(true).
 		SetSelectable(true, false)
 
-	// Header
-	headers := []string{"ID", "Description", "Status", "Priority", "Due Date"}
-	for col, header := range headers {
-		table.SetCell(0, col, tview.NewTableCell(header).
-			SetTextColor(tcell.ColorYellow).
-			SetSelectable(false).
-			SetAlign(tview.AlignCenter))
+		// Header
+	headers := []string{"ID", "Description", "Status", "Priority", "Created", "Updated", "Assignee", "DoDate", "DueDate", "Start", "End", "Completed", "EstHrs", "Progress", "Parent"}
+	for col, h := range headers {
+		table.SetCell(0, col, tview.NewTableCell(h).SetTextColor(tcell.ColorYellow).SetSelectable(false))
 	}
-
-	// Data rows
 	for row, task := range tasks {
-		dueDate := ""
-		if task.FinalDueDate != nil {
-			dueDate = task.FinalDueDate.Format("2006-01-02")
-		}
 		table.SetCell(row+1, 0, tview.NewTableCell(fmt.Sprintf("%d", *task.TaskID)))
 		table.SetCell(row+1, 1, tview.NewTableCell(task.Description))
 		table.SetCell(row+1, 2, tview.NewTableCell(task.Status))
 		table.SetCell(row+1, 3, tview.NewTableCell(task.Priority))
-		table.SetCell(row+1, 4, tview.NewTableCell(dueDate))
+		table.SetCell(row+1, 4, tview.NewTableCell(fmtTime(task.CreatedAt)))
+		table.SetCell(row+1, 5, tview.NewTableCell(fmtTime(task.UpdatedAt)))
+		table.SetCell(row+1, 6, tview.NewTableCell(fmtInt64(task.AssigneeID)))
+		table.SetCell(row+1, 7, tview.NewTableCell(fmtTime(task.DoDate)))
+		table.SetCell(row+1, 8, tview.NewTableCell(fmtTime(task.FinalDueDate)))
+		table.SetCell(row+1, 9, tview.NewTableCell(fmtTime(task.StartTime)))
+		table.SetCell(row+1, 10, tview.NewTableCell(fmtTime(task.EndTime)))
+		table.SetCell(row+1, 11, tview.NewTableCell(fmtTime(task.CompletedAt)))
+		table.SetCell(row+1, 12, tview.NewTableCell(fmtFloat64(task.EstimatedHours)))
+		table.SetCell(row+1, 13, tview.NewTableCell(fmtInt64(task.Progress)))
+		table.SetCell(row+1, 14, tview.NewTableCell(fmtInt64(task.ParentTaskID)))
 	}
 
 	table.SetDoneFunc(func(key tcell.Key) {
@@ -328,6 +351,9 @@ func showTaskList(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive)
 			app.SetRoot(prevPage, true)
 		}
 	})
+
+	// 3. Keep the top row (0) frozen/fixed at the top
+	table.SetFixed(1, 0) // (rowsToFix, columnsToFix)
 
 	table.SetBorder(true).SetTitle(" YOUR TASKS (ESC to return) ")
 

@@ -30,6 +30,7 @@ Core Rules:
 Available tools:
 - AIListTasks(): returns all tasks.  include the (description, status, priority, final_due_date, progress, parent_task_id
 - AIAddTask(...): creates a task
+    try to fill out all the fields when adding a task.  use context and clues from the prompt to estimate values for all the fields
 - AIGetTask(taskID): gets one task
 - AIDeleteTask(taskID): deletes a task, returns success bool
 - AICompleteTask(taskID): marks task complete, returns success bool
