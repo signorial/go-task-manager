@@ -54,5 +54,76 @@ func StartDatabase() (*sqlx.DB, error) {
 
 	);
 	`
+
+	db.MustExec(schema) // creates table if it doesn't exist
 	return db, err
+}
+
+func DBGetTasks(db *sqlx.DB) ([]Task, error) {
+	var tasks []Task
+	query := `SELECT * FROM tasks`
+	err := db.Select(&tasks, query)
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+func DBGetTask(db *sqlx.DB, taskID int64) (Task, error) {
+	var task Task
+	query := `SELECT * FROM tasks WHERE task_id =?`
+	err := db.Select(&task, query)
+	if err != nil {
+		return task, err
+	}
+	return task, nil
+}
+
+func DBDeleteTask(db *sqlx.DB, taskID int64) error {
+	query := `DELETE FROM tasks WHERE task_id=?`
+	// check if task has already been deleted
+	_, err := DBGetTask(db, taskID)
+	if err != nil {
+		return fmt.Errorf("wrong ID or task has already been deleted %d", taskID)
+	}
+
+	_, err = db.Exec(query, taskID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
+	query := `INSERT INTO tasks (
+                description, status, created_at, updated_at, priority,
+                assignee_id, do_date, final_due_date, start_time, end_time,
+                completed_at, estimated_hours, progress, parent_task_id
+            ) VALUES (
+                :description, :status, :created_at, :updated_at, :priority,
+                :assignee_id, :do_date, :final_due_date, :start_time, :end_time,
+                :completed_at, :estimated_hours, :progress, :parent_task_id
+            )`
+
+	result, err := db.NamedExec(query, task)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func DBCompleteTask(db *sqlx.DB, taskID int64) error {
+	query := `UPDATE tasks SET status = "COMPLETED" WHERE task_id=?`
+
+	_, err := db.Exec(query, taskID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
