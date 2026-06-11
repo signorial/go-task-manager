@@ -42,7 +42,7 @@ var OneDarkProTheme = tview.Theme{
 func main() {
 	tview.Styles = OneDarkProTheme
 	// Setup logging
-	logFile, err := os.OpenFile("debug_tview.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	logFile, err := os.OpenFile("debug.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to open log file: %v\n", err)
 		os.Exit(1)
@@ -89,7 +89,7 @@ func main() {
 		case 0: // AI Task Manager
 			showAIChat(app, db, mainMenu)
 		case 1: // Add Task
-			showAddTaskForm(app, db, mainMenu)
+			showAddTaskForm(app, db, mainMenu, nil) // pass empty task for the add task form
 		case 2: // List Tasks
 			showTaskList(app, db, mainMenu)
 		case 3: // Complete Task
@@ -183,28 +183,83 @@ func showAIChat(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
 }
 
 // showAddTaskForm displays a form to add a new task
-func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
+func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive, task *models.Task) {
 	form := tview.NewForm()
 	form.SetBorder(true).SetTitle(" ADD NEW TASK ")
 
-	// Task fields
-	var description, status, priority string
-	var doDateStr, finalDueDateStr, completedAtStr string
-	var startTimeStr, endTimeStr string
-	var estimatedStr, progressStr, assigneeStr, parentStr string
+	// variables to hold the models task
+	Priority, Status := 0, 0
 
-	form.AddInputField("Description", "", 50, nil, func(text string) { description = text })
-	form.AddDropDown("Status", []string{"Pending", "In Progress", "Completed", "Blocked"}, 0, func(option string, index int) { status = option })
-	form.AddDropDown("Priority", []string{"Low", "Regular", "High", "Urgent"}, 1, func(option string, index int) { priority = option })
-	form.AddInputField("Do Date (YYYY-MM-DD)", "", 13, nil, func(text string) { doDateStr = text })
-	form.AddInputField("Final Due Date (YYYY-MM-DD)", "", 13, nil, func(text string) { finalDueDateStr = text })
-	form.AddInputField("Completed At (YYYY-MM-DD)", "", 13, nil, func(text string) { completedAtStr = text })
-	form.AddInputField("Start Time (HH:MM)", "", 13, nil, func(text string) { startTimeStr = text })
-	form.AddInputField("End Time (HH:MM)", "", 13, nil, func(text string) { endTimeStr = text })
-	form.AddInputField("Estimated Hours", "", 5, nil, func(text string) { estimatedStr = text })
-	form.AddInputField("Progress (%)", "", 3, nil, func(text string) { progressStr = text })
-	form.AddInputField("Assignee ID", "", 10, nil, func(text string) { assigneeStr = text })
-	form.AddInputField("Parent Task ID", "", 10, nil, func(text string) { parentStr = text })
+	var Description, CreatedAt_str, UpdatedAt_str string
+	var AssigneeID_str, DoDate_str, FinalDueDate_str, StartTime_str, EndTime_str string
+	var CompletedAt_str, EstimatedHours_str, Progress_str, ParentTaskID_str string
+
+	if task != nil {
+		Description = task.Description
+		// status index
+		for i, s := range statusOptions {
+			if s == task.Status {
+				Status = i
+			}
+		}
+		if task.CreatedAt != nil {
+			CreatedAt_str = task.CreatedAt.Format("2006-01-02")
+		}
+		UpdatedAt_str = time.Now().Format("2006-01-02 15:04:05")
+		// priority index
+		for i, p := range []string{"Low", "Regular", "High", "Urgent"} {
+			if p == task.Priority {
+				Priority = i
+			}
+		}
+		if task.AssigneeID != nil {
+			AssigneeID_str = fmt.Sprintf("%d", *task.AssigneeID)
+		}
+		if task.DoDate != nil {
+			DoDate_str = task.DoDate.Format("2006-01-02")
+		}
+		if task.FinalDueDate != nil {
+			FinalDueDate_str = task.FinalDueDate.Format("2006-01-02")
+		}
+		if task.StartTime != nil {
+			StartTime_str = task.StartTime.Format("2006-01-02")
+		}
+		if task.EndTime != nil {
+			EndTime_str = task.EndTime.Format("2006-01-02")
+		}
+		if task.CompletedAt != nil {
+			CompletedAt_str = task.CompletedAt.Format("2006-01-02")
+		}
+		if task.EstimatedHours != nil {
+			EstimatedHours_str = fmt.Sprintf("%d", *task.EstimatedHours)
+		}
+		if task.Progress != nil {
+			Progress_str = fmt.Sprintf("%d", *task.Progress)
+		}
+		if task.ParentTaskID != nil {
+			ParentTaskID_str = fmt.Sprintf("%d", *task.ParentTaskID)
+		}
+
+	}
+
+	// to support dropdown selections
+	statusOptions := []string{"Pending", "In Progress", "Completed", "Blocked"}
+	priorityOptions := []string{"Low", "Regular", "High", "Urgent"}
+
+	form.AddInputField("Description", Description, 50, nil, func(text string) { Description = text })
+	form.AddDropDown("Status", statusOptions, Status, func(option string, index int) { Status = option })
+	form.AddInputField("Task Creation Date (YYYY-MM-DD)", CreatedAt_str, 13, nil, func(text string) { CreatedAt_str = text })
+	form.AddInputField("Task Update Date (YYYY-MM-DD)", UpdatedAt_str, 13, nil, func(text string) { UpdatedAt_str = text })
+	form.AddDropDown("Priority", priorityOptions, Priority, func(option string, index int) { Priority = option })
+	form.AddInputField("Do Date (YYYY-MM-DD)", "", DoDate_str, nil, func(text string) { DoDate_str = text })
+	form.AddInputField("Final Due Date (YYYY-MM-DD)", FinalDueDate_str, 13, nil, func(text string) { FinalDueDate_str = text })
+	form.AddInputField("Completed At (YYYY-MM-DD)", CompletedAt_str, 13, nil, func(text string) { CompletedAt_str = text })
+	form.AddInputField("Start Time (HH:MM)", "", 13, StartTime_str, func(text string) { StartTime_str = text })
+	form.AddInputField("End Time (HH:MM)", "", 13, EndTime_str, func(text string) { EndTime_str = text })
+	form.AddInputField("Estimated Hours", "", 5, EstimatedHours_str, func(text string) { EstimatedHours_str = text })
+	form.AddInputField("Progress (%)", "", 3, Progress_str, func(text string) { Progress_str = text })
+	form.AddInputField("Assignee ID", "", 10, AssigneeID_str, func(text string) { AssigneeID_str = text })
+	form.AddInputField("Parent Task ID", "", 10, ParentTaskID_str, func(text string) { ParentTaskID_str = text })
 
 	form.AddButton("Save", func() {
 		task := models.Task{
