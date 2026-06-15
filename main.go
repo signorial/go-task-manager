@@ -63,9 +63,10 @@ func main() {
 	menu := tview.NewList().
 		AddItem("AI Task Manager", "", '1', nil).
 		AddItem("Add Task", "", '2', nil).
-		AddItem("List Tasks", "", '3', nil).
-		AddItem("Complete Task", "", '4', nil).
-		AddItem("Delete Task", "", '5', nil).
+		AddItem("Edit Task", "", '3', nil).
+		AddItem("List Tasks", "", '4', nil).
+		AddItem("Complete Task", "", '5', nil).
+		AddItem("Delete Task", "", '6', nil).
 		AddItem("Quit", "", 'q', func() {
 			app.Stop()
 		})
@@ -89,12 +90,14 @@ func main() {
 		case 0: // AI Task Manager
 			showAIChat(app, db, mainMenu)
 		case 1: // Add Task
-			showAddTaskForm(app, db, mainMenu, nil) // pass empty task for the add task form
-		case 2: // List Tasks
+			showAddTaskForm(app, db, mainMenu, models.Task{}) // pass empty task for the add task form
+		case 2: // Edit Task
+			showEditTaskForm(app, db, mainMenu)
+		case 3: // List Tasks
 			showTaskList(app, db, mainMenu)
-		case 3: // Complete Task
+		case 4: // Complete Task
 			showCompleteTask(app, db, mainMenu)
-		case 4: // Delete Task
+		case 5: // Delete Task
 			showDeleteTask(app, db, mainMenu)
 		}
 	})
@@ -183,7 +186,7 @@ func showAIChat(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
 }
 
 // showAddTaskForm displays a form to add a new task
-func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive, task *models.Task) {
+func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive, task models.Task) {
 	form := tview.NewForm()
 	form.SetBorder(true).SetTitle(" ADD NEW TASK ")
 
@@ -198,7 +201,7 @@ func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primiti
 	var AssigneeID_str, DoDate_str, FinalDueDate_str, StartTime_str, EndTime_str string
 	var CompletedAt_str, EstimatedHours_str, Progress_str, ParentTaskID_str string
 
-	if task != nil {
+	if task != (models.Task{}) {
 		Description = task.Description
 		// status index
 		for i, s := range statusOptions {
@@ -235,7 +238,7 @@ func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primiti
 			CompletedAt_str = task.CompletedAt.Format("2006-01-02")
 		}
 		if task.EstimatedHours != nil {
-			EstimatedHours_str = fmt.Sprintf("%d", *task.EstimatedHours)
+			EstimatedHours_str = fmt.Sprintf("%f", *task.EstimatedHours)
 		}
 		if task.Progress != nil {
 			Progress_str = fmt.Sprintf("%d", *task.Progress)
@@ -248,8 +251,6 @@ func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primiti
 
 	form.AddInputField("Description", Description, 50, nil, func(text string) { Description = text })
 	form.AddDropDown("Status", statusOptions, Status, func(option string, index int) { Status = index })
-	form.AddInputField("Task Creation Date (YYYY-MM-DD)", CreatedAt_str, 13, nil, func(text string) { CreatedAt_str = text })
-	form.AddInputField("Task Update Date (YYYY-MM-DD)", UpdatedAt_str, 13, nil, func(text string) { UpdatedAt_str = text })
 	form.AddDropDown("Priority", priorityOptions, Priority, func(option string, index int) { Priority = index })
 	form.AddInputField("Do Date (YYYY-MM-DD)", DoDate_str, 13, nil, func(text string) { DoDate_str = text })
 	form.AddInputField("Final Due Date (YYYY-MM-DD)", FinalDueDate_str, 13, nil, func(text string) { FinalDueDate_str = text })
@@ -260,6 +261,8 @@ func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primiti
 	form.AddInputField("Progress (%)", Progress_str, 3, nil, func(text string) { Progress_str = text })
 	form.AddInputField("Assignee ID", AssigneeID_str, 10, nil, func(text string) { AssigneeID_str = text })
 	form.AddInputField("Parent Task ID", ParentTaskID_str, 10, nil, func(text string) { ParentTaskID_str = text })
+	form.AddTextView("Task Creation Date", CreatedAt_str, 13, 1, false, false)
+	form.AddTextView("Task Update Date", UpdatedAt_str, 13, 1, false, false)
 
 	form.AddButton("Save", func() {
 		task := models.Task{
@@ -463,6 +466,59 @@ func showCompleteTask(app *tview.Application, db *sqlx.DB, prevPage tview.Primit
 		app.SetRoot(prevPage, true)
 	})
 
+	app.SetRoot(form, true)
+}
+
+// showCompleteTask shows a form to mark a task complete
+func showEditTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
+	form := tview.NewForm()
+	form.SetBorder(true).SetTitle(" EDIT TASK ")
+
+	var taskIDStr string
+	form.AddInputField("Task ID", "", 10, nil, func(text string) { taskIDStr = text })
+	form.AddButton("Edit", func() {
+		taskIDint, err := strconv.ParseInt(strings.TrimSpace(taskIDStr), 10, 64)
+		if err != nil {
+			modal := tview.NewModal().
+				SetText("Error: Invalid Task ID").
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+			return
+		}
+
+		task, err := models.DBGetTask(db, taskIDint)
+		if err != nil {
+			modal := tview.NewModal().
+				SetText(fmt.Sprintf("Error Editing task: %v", err)).
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+			return
+		} else {
+			showAddTaskForm(app, db, prevPage, task)
+		}
+	})
+
+	form.AddButton("Cancel", func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	form.SetCancelFunc(func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			app.SetRoot(prevPage, true)
+			return nil
+		}
+		return event
+	})
 	app.SetRoot(form, true)
 }
 
