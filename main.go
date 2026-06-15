@@ -187,6 +187,10 @@ func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primiti
 	form := tview.NewForm()
 	form.SetBorder(true).SetTitle(" ADD NEW TASK ")
 
+	// to support dropdown selections
+	statusOptions := []string{"Pending", "In Progress", "Completed", "Blocked"}
+	priorityOptions := []string{"Low", "Regular", "High", "Urgent"}
+
 	// variables to hold the models task
 	Priority, Status := 0, 0
 
@@ -207,7 +211,7 @@ func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primiti
 		}
 		UpdatedAt_str = time.Now().Format("2006-01-02 15:04:05")
 		// priority index
-		for i, p := range []string{"Low", "Regular", "High", "Urgent"} {
+		for i, p := range priorityOptions {
 			if p == task.Priority {
 				Priority = i
 			}
@@ -242,62 +246,58 @@ func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primiti
 
 	}
 
-	// to support dropdown selections
-	statusOptions := []string{"Pending", "In Progress", "Completed", "Blocked"}
-	priorityOptions := []string{"Low", "Regular", "High", "Urgent"}
-
 	form.AddInputField("Description", Description, 50, nil, func(text string) { Description = text })
-	form.AddDropDown("Status", statusOptions, Status, func(option string, index int) { Status = option })
+	form.AddDropDown("Status", statusOptions, Status, func(option string, index int) { Status = index })
 	form.AddInputField("Task Creation Date (YYYY-MM-DD)", CreatedAt_str, 13, nil, func(text string) { CreatedAt_str = text })
 	form.AddInputField("Task Update Date (YYYY-MM-DD)", UpdatedAt_str, 13, nil, func(text string) { UpdatedAt_str = text })
-	form.AddDropDown("Priority", priorityOptions, Priority, func(option string, index int) { Priority = option })
-	form.AddInputField("Do Date (YYYY-MM-DD)", "", DoDate_str, nil, func(text string) { DoDate_str = text })
+	form.AddDropDown("Priority", priorityOptions, Priority, func(option string, index int) { Priority = index })
+	form.AddInputField("Do Date (YYYY-MM-DD)", DoDate_str, 13, nil, func(text string) { DoDate_str = text })
 	form.AddInputField("Final Due Date (YYYY-MM-DD)", FinalDueDate_str, 13, nil, func(text string) { FinalDueDate_str = text })
 	form.AddInputField("Completed At (YYYY-MM-DD)", CompletedAt_str, 13, nil, func(text string) { CompletedAt_str = text })
-	form.AddInputField("Start Time (HH:MM)", "", 13, StartTime_str, func(text string) { StartTime_str = text })
-	form.AddInputField("End Time (HH:MM)", "", 13, EndTime_str, func(text string) { EndTime_str = text })
-	form.AddInputField("Estimated Hours", "", 5, EstimatedHours_str, func(text string) { EstimatedHours_str = text })
-	form.AddInputField("Progress (%)", "", 3, Progress_str, func(text string) { Progress_str = text })
-	form.AddInputField("Assignee ID", "", 10, AssigneeID_str, func(text string) { AssigneeID_str = text })
-	form.AddInputField("Parent Task ID", "", 10, ParentTaskID_str, func(text string) { ParentTaskID_str = text })
+	form.AddInputField("Start Time (HH:MM)", StartTime_str, 13, nil, func(text string) { StartTime_str = text })
+	form.AddInputField("End Time (HH:MM)", EndTime_str, 13, nil, func(text string) { EndTime_str = text })
+	form.AddInputField("Estimated Hours", EstimatedHours_str, 5, nil, func(text string) { EstimatedHours_str = text })
+	form.AddInputField("Progress (%)", Progress_str, 3, nil, func(text string) { Progress_str = text })
+	form.AddInputField("Assignee ID", AssigneeID_str, 10, nil, func(text string) { AssigneeID_str = text })
+	form.AddInputField("Parent Task ID", ParentTaskID_str, 10, nil, func(text string) { ParentTaskID_str = text })
 
 	form.AddButton("Save", func() {
 		task := models.Task{
-			Description: description,
-			Status:      status,
-			Priority:    priority,
+			Description: Description,
+			Status:      statusOptions[Status],
+			Priority:    priorityOptions[Priority],
 			CreatedAt:   ptr(time.Now()),
 			UpdatedAt:   ptr(time.Time{}),
 		}
 
 		// Parse optional date/time fields
-		if t, err := time.Parse("2006-01-02", doDateStr); err == nil {
+		if t, err := time.Parse("2006-01-02", DoDate_str); err == nil {
 			task.DoDate = &t
 		}
-		if t, err := time.Parse("2006-01-02", finalDueDateStr); err == nil {
+		if t, err := time.Parse("2006-01-02", FinalDueDate_str); err == nil {
 			task.FinalDueDate = &t
 		}
-		if completedAtStr != "" {
-			if t, err := time.Parse("2006-01-02", completedAtStr); err == nil {
+		if CompletedAt_str != "" {
+			if t, err := time.Parse("2006-01-02", CompletedAt_str); err == nil {
 				task.CompletedAt = &t
 			}
 		}
-		if t, err := time.Parse("15:04", startTimeStr); err == nil {
+		if t, err := time.Parse("15:04", StartTime_str); err == nil {
 			task.StartTime = &t
 		}
-		if t, err := time.Parse("15:04", endTimeStr); err == nil {
+		if t, err := time.Parse("15:04", EndTime_str); err == nil {
 			task.EndTime = &t
 		}
-		if f, err := strconv.ParseFloat(estimatedStr, 64); err == nil {
+		if f, err := strconv.ParseFloat(EstimatedHours_str, 64); err == nil {
 			task.EstimatedHours = &f
 		}
-		if i, err := strconv.ParseInt(progressStr, 10, 64); err == nil {
+		if i, err := strconv.ParseInt(Progress_str, 10, 64); err == nil {
 			task.Progress = &i
 		}
-		if i, err := strconv.ParseInt(assigneeStr, 10, 64); err == nil {
+		if i, err := strconv.ParseInt(AssigneeID_str, 10, 64); err == nil {
 			task.AssigneeID = &i
 		}
-		if i, err := strconv.ParseInt(parentStr, 10, 64); err == nil {
+		if i, err := strconv.ParseInt(ParentTaskID_str, 10, 64); err == nil {
 			task.ParentTaskID = &i
 		}
 
