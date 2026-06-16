@@ -17,7 +17,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// OneDarkProTheme creates a custom tview.Theme matching the Atom/VS Code style.
+// This creates a OneDarkProTheme
+// TODO: move this to a separate source file and allow for multiple themes selectable in the app
 var OneDarkProTheme = tview.Theme{
 	// Backgrounds
 	PrimitiveBackgroundColor:    tcell.NewRGBColor(40, 44, 52), // #282c34 (Main Editor Bg)
@@ -54,7 +55,7 @@ func main() {
 
 	// Open database
 	db, err := models.StartDatabase()
-	defer db.Close()
+	defer db.Close() // closes the file after the app finishes
 
 	// Create tview app
 	app := tview.NewApplication()
@@ -190,13 +191,14 @@ func showAddTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primiti
 	form := tview.NewForm()
 	form.SetBorder(true).SetTitle(" ADD NEW TASK ")
 
-	// to support dropdown selections
+	// drop down lists
 	statusOptions := []string{"Pending", "In Progress", "Completed", "Blocked"}
 	priorityOptions := []string{"Low", "Regular", "High", "Urgent"}
 
 	// variables to hold the models task
 	Priority, Status := 0, 0
 
+	// form fields to be added to the task struct on save
 	var Description, CreatedAt_str, UpdatedAt_str string
 	var AssigneeID_str, DoDate_str, FinalDueDate_str, StartTime_str, EndTime_str string
 	var CompletedAt_str, EstimatedHours_str, Progress_str, ParentTaskID_str string
