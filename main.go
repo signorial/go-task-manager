@@ -40,10 +40,6 @@ var OneDarkProTheme = tview.Theme{
 	ContrastSecondaryTextColor: tcell.NewRGBColor(229, 192, 123), // #e5c07b (Yellow Accent)
 }
 
-
-
-
-
 func main() {
 	fmt.Printf("this is to trigger a change to upload")
 	tview.Styles = OneDarkProTheme
@@ -516,4 +512,72 @@ func showEditTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primit
 		}
 	})
 
-	form.AddButton("Cancel", func
+	form.AddButton("Cancel", func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	form.SetCancelFunc(func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			app.SetRoot(prevPage, true)
+			return nil
+		}
+		return event
+	})
+	app.SetRoot(form, true)
+}
+
+// showDeleteTask shows a form to delete a task
+func showDeleteTask(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
+	form := tview.NewForm()
+	form.SetBorder(true).SetTitle(" DELETE TASK ")
+
+	var taskIDStr string
+	form.AddInputField("Task ID", "", 10, nil, func(text string) { taskIDStr = text })
+
+	form.AddButton("Delete", func() {
+		taskIDint, err := strconv.ParseInt(strings.TrimSpace(taskIDStr), 10, 64)
+		if err != nil {
+			modal := tview.NewModal().
+				SetText("Error: Invalid Task ID").
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+			return
+		}
+
+		err = models.DBDeleteTask(db, taskIDint)
+		if err != nil {
+			modal := tview.NewModal().
+				SetText(fmt.Sprintf("Error deleting task: %v", err)).
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+		} else {
+			modal := tview.NewModal().
+				SetText(fmt.Sprintf("✅ Deleted task %d", taskIDint)).
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					app.SetRoot(prevPage, true)
+				})
+			app.SetRoot(modal, true)
+		}
+	})
+
+	form.AddButton("Cancel", func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	form.SetCancelFunc(func() {
+		app.SetRoot(prevPage, true)
+	})
+
+	app.SetRoot(form, true)
+}
