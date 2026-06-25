@@ -530,6 +530,7 @@ func showEditTaskForm(app *tview.Application, db *sqlx.DB, prevPage tview.Primit
 	app.SetRoot(form, true)
 }
 
+// trigger a change
 // showDeleteTask shows a form to delete a task
 func showDeleteTask(app *tview.Application, db *sqlx.DB, prevPage tview.Primitive) {
 	form := tview.NewForm()
