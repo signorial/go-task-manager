@@ -24,6 +24,7 @@ type LocalTask struct {
 	UpdateAt      time.Time `json:"update_at"`
 }
 
+// this is just a comment
 func main() {
 	ctx := context.Background()
 
@@ -33,7 +34,7 @@ func main() {
 		fmt.Errorf("unable to read the credentials file: %v", err)
 	}
 
-	// reques read write access to calendar
+	// request read write access to calendar
 	config, err := google.ConfigFromJSON(b, calendar.CalendarScope)
 	if err != nil {
 		fmt.Errorf("Unable to parse client secret file: %v", err)

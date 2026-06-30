@@ -13,8 +13,8 @@ require (
 	github.com/lmittmann/tint v1.1.3
 	github.com/rivo/tview v0.42.0
 	golang.org/x/oauth2 v0.36.0
-	google.golang.org/api v0.285.0
-	modernc.org/sqlite v1.48.0
+	google.golang.org/api v0.286.0
+	modernc.org/sqlite v1.53.0
 )
 
 require (
@@ -85,7 +85,7 @@ require (
 	google.golang.org/grpc v1.81.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.70.0 // indirect
+	modernc.org/libc v1.73.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
