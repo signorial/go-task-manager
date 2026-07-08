@@ -52,8 +52,15 @@ func StartDatabase() (*sqlx.DB, error) {
 		progress         INTEGER,
 		parent_task_id   INTEGER
 
-	);
-	`
+	);`
+
+	// syncing table between google and the app
+	schema += `
+		CREATE TABLE IF NOT EXISTS task_google_events (
+    task_id         INTEGER PRIMARY KEY,
+    google_event_id TEXT NOT NULL UNIQUE,
+    last_synced_at  DATETIME
+		);`
 
 	db.MustExec(schema) // creates table if it doesn't exist
 	return db, err

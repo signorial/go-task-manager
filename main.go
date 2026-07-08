@@ -14,6 +14,7 @@ import (
 	"github.com/lufraser/gotaskmanager/aitaskmanager"
 	"github.com/lufraser/gotaskmanager/models"
 	"github.com/rivo/tview"
+	"google.golang.org/api/calendar/v3"
 	_ "modernc.org/sqlite"
 )
 
@@ -581,4 +582,32 @@ func showDeleteTask(app *tview.Application, db *sqlx.DB, prevPage tview.Primitiv
 	})
 
 	app.SetRoot(form, true)
+}
+
+func showSyncConflictModal(app *tview.Application, local models.Task, googleEv *calendar.Event, onResolve func(string)) {
+	table := tview.NewTable().SetBorders(true)
+	table.SetCell(0, 0, tview.NewTableCell("Field").SetTextColor(tcell.ColorYellow))
+	table.SetCell(0, 1, tview.NewTableCell("Local").SetTextColor(tcell.ColorYellow))
+	table.SetCell(0, 2, tview.NewTableCell("Google").SetTextColor(tcell.ColorYellow))
+
+	table.SetCell(1, 0, tview.NewTableCell("Description"))
+	table.SetCell(1, 1, tview.NewTableCell(local.Description))
+	table.SetCell(1, 2, tview.NewTableCell(googleEv.Summary))
+
+	table.SetCell(2, 0, tview.NewTableCell("DoDate"))
+	table.SetCell(2, 1, tview.NewTableCell(fmtTime(local.DoDate)))
+	table.SetCell(2, 2, tview.NewTableCell(googleEv.Start.Date))
+
+	modal := tview.NewModal().
+		SetText("Conflict detected – choose resolution").
+		AddButtons([]string{"Keep Local", "Keep Google", "Skip"}).
+		SetDoneFunc(func(i int, label string) {
+			onResolve(label)
+		})
+
+	flex := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(table, 0, 1, false).
+		AddItem(modal, 3, 0, true)
+
+	app.SetRoot(flex, true)
 }
