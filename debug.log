@@ -1,0 +1,8 @@
+[2mJul  9 13:26:02.522[0m [92mINF[0m entering google calendar sync
+[2mJul  9 13:26:02.522[0m [91mERR[0m google calendar failed to sync: [2merr=[0m"calendar service: unable to read credentials.json: open ../credentials.json: no such file or directory"
+[2mJul  9 13:28:50.218[0m [92mINF[0m entering google calendar sync
+[2mJul  9 13:31:08.804[0m [92mINF[0m entering google calendar sync
+[2mJul  9 14:56:31.514[0m [92mINF[0m entering google calendar sync
+[2mJul  9 14:59:27.553[0m [92mINF[0m exited google calendar sync
+[2mJul  9 15:25:23.531[0m [92mINF[0m entering google calendar sync
+[2mJul  9 15:25:23.845[0m [92mINF[0m exited google calendar sync

@@ -54,29 +54,6 @@ func StartDatabase() (*sqlx.DB, error) {
 
 	);`
 
-	// Stores the Google sync token (singleton row)
-	schema += `
-		CREATE TABLE IF NOT EXISTS google_sync_state (
-    id           INTEGER PRIMARY KEY CHECK (id = 1),
-    sync_token   TEXT,
-    last_sync_at DATETIME
-	);`
-
-	// Stores Google Calendar events (pull-only mirror)
-	schema += `
-		CREATE TABLE IF NOT EXISTS google_calendar_events (
-    google_event_id TEXT PRIMARY KEY,
-    summary         TEXT,
-    description     TEXT,
-    start_date      TEXT,
-    end_date        TEXT,
-    status          TEXT,
-    updated         TEXT,
-    raw_json        TEXT,
-    deleted         BOOLEAN DEFAULT 0,   -- TOMBSTONE: 1 = cancelled/deleted
-    synced_at       DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
-
 	db.MustExec(schema) // creates table if it doesn't exist
 	return db, err
 }
