@@ -12,6 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lmittmann/tint"
 	"github.com/lufraser/gotaskmanager/aitaskmanager"
+	"github.com/lufraser/gotaskmanager/googlecalendarsync"
 	"github.com/lufraser/gotaskmanager/models"
 	"github.com/rivo/tview"
 	"google.golang.org/api/calendar/v3"
@@ -58,6 +59,11 @@ func main() {
 	// Open database
 	db, err := models.StartDatabase()
 	defer db.Close() // closes the file after the app finishes
+
+	err = googlecalendarsync.SyncWithToken(db)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "google calendar failed to sync: %v\n", err)
+	}
 
 	// Create tview app
 	app := tview.NewApplication()

@@ -5,53 +5,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/lufraser/gotaskmanager/models"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
 )
 
-type LocalTask struct {
-	ID            string    `json:"id"`
-	Title         string    `json:"title"`
-	Description   string    `json:"description"`
-	StartTime     time.Time `json:"start_time"`
-	EndTime       time.Time `json:"end_time"`
-	GoogleEventID string    `json:"google_event_id"`
-	UpdateAt      time.Time `json:"update_at"`
-}
-
-// func main() {
-// 	ctx := context.Background()
-//
-// 	// read the google api credentials
-// 	b, err := os.ReadFile("credentials.json")
-// 	if err != nil {
-// 		fmt.Errorf("unable to read the credentials file: %v", err)
-// 	}
-//
-// 	// request read write access to calendar
-// 	config, err := google.ConfigFromJSON(b, calendar.CalendarScope)
-// 	if err != nil {
-// 		fmt.Errorf("Unable to parse client secret file: %v", err)
-// 	}
-//
-// 	client := getClient(config)
-//
-// 	srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
-// 	if err != nil {
-// 		fmt.Errorf("Unable to retrieve Calendar client: %v", err)
-// 	}
-// }
-
-// --- OAUTH2 UTILITIES FOR TOKEN MANAGEMENT ---
+// Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
+	// The file token.json stores the user's access and refresh tokens, and is
+	// created automatically when the authorization flow completes for the first
+	// time.
 	tokFile := "token.json"
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
@@ -61,22 +30,25 @@ func getClient(config *oauth2.Config) *http.Client {
 	return config.Client(context.Background(), tok)
 }
 
+// Request a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser then type the authorization code: \n%v\n", authURL)
+	fmt.Printf("Go to the following link in your browser then type the "+
+		"authorization code: \n%v\n", authURL)
 
 	var authCode string
 	if _, err := fmt.Scan(&authCode); err != nil {
-		fmt.Errorf("Unable to read authorization code %v", err)
+		log.Fatalf("Unable to read authorization code: %v", err)
 	}
 
-	tok, err := config.Exchange(context.Background(), authCode)
+	tok, err := config.Exchange(context.TODO(), authCode)
 	if err != nil {
-		fmt.Errorf("Unable to retrieve token from web %v", err)
+		log.Fatalf("Unable to retrieve token from web: %v", err)
 	}
 	return tok
 }
 
+// Retrieves a token from a local file.
 func tokenFromFile(file string) (*oauth2.Token, error) {
 	f, err := os.Open(file)
 	if err != nil {
@@ -85,106 +57,55 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 	defer f.Close()
 	tok := &oauth2.Token{}
 	err = json.NewDecoder(f).Decode(tok)
-	return tok, nil
+	return tok, err
 }
 
+// Saves a token to a file path.
 func saveToken(path string, token *oauth2.Token) {
 	fmt.Printf("Saving credential file to: %s\n", path)
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
-		fmt.Errorf("Unable to cache oauth token: %v", err)
+		log.Fatalf("Unable to cache oauth token: %v", err)
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
 }
 
-func getCalendarService() (*calendar.Service, error) {
-	b, err := os.ReadFile("../credentials.json")
+func main() {
+	ctx := context.Background()
+	b, err := os.ReadFile("credentials.json")
 	if err != nil {
-		return nil, fmt.Errorf("unable to read credentials.json: %v", err)
+		log.Fatalf("Unable to read client secret file: %v", err)
 	}
-	config, err := google.ConfigFromJSON(b, calendar.CalendarScope)
+
+	// If modifying these scopes, delete your previously saved token.json.
+	config, err := google.ConfigFromJSON(b, calendar.CalendarReadonlyScope)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse client secret: %v", err)
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
 	client := getClient(config)
-	return calendar.NewService(context.Background(), option.WithHTTPClient(client))
-}
 
-func taskToAllDayEvent(task models.Task) *calendar.Event {
-	if task.DoDate == nil {
-		return nil
-	}
-	dateStr := task.DoDate.Format("2006-01-02")
-	return &calendar.Event{
-		Summary: task.Description,
-		Start:   &calendar.EventDateTime{Date: dateStr},
-		End:     &calendar.EventDateTime{Date: dateStr},
-	}
-}
-
-func hasConflict(localUpdated, googleUpdated, lastSynced time.Time) bool {
-	return localUpdated.After(lastSynced) && googleUpdated.After(lastSynced)
-}
-
-func SyncTask(db *sqlx.DB, task models.Task) error {
-	if task.DoDate == nil || task.TaskID == nil {
-		return nil
-	}
-
-	srv, err := getCalendarService()
+	srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
-		return err
+		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
 
-	eventID, lastSynced, err := models.GetGoogleEventID(db, *task.TaskID)
-	event := taskToAllDayEvent(task)
-	if event == nil {
-		return nil
+	t := time.Now().Format(time.RFC3339)
+	events, err := srv.Events.List("primary").ShowDeleted(false).
+		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
+	if err != nil {
+		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 	}
-
-	if eventID != "" {
-		// existing event – check for conflict
-		existing, err := srv.Events.Get("primary", eventID).Do()
-		if err == nil && hasConflict(
-			*task.UpdatedAt,
-			parseGoogleTime(existing.Updated),
-			lastSynced,
-		) {
-			return fmt.Errorf("conflict detected")
+	fmt.Println("Upcoming events:")
+	if len(events.Items) == 0 {
+		fmt.Println("No upcoming events found.")
+	} else {
+		for _, item := range events.Items {
+			date := item.Start.DateTime
+			if date == "" {
+				date = item.Start.Date
+			}
+			fmt.Printf("%v (%v)\n", item.Summary, date)
 		}
-		_, err = srv.Events.Update("primary", eventID, event).Do()
-		if err != nil {
-			return err
-		}
-		return models.UpdateLastSyncedAt(db, *task.TaskID)
 	}
-
-	// new event
-	created, err := srv.Events.Insert("primary", event).Do()
-	if err != nil {
-		return err
-	}
-	return models.SaveGoogleEventMapping(db, *task.TaskID, created.Id)
-}
-
-func DeleteTask(db *sqlx.DB, taskID int64) error {
-	eventID, _, err := models.GetGoogleEventID(db, taskID)
-	if err != nil || eventID == "" {
-		return nil
-	}
-
-	srv, err := getCalendarService()
-	if err != nil {
-		return err
-	}
-	if err := srv.Events.Delete("primary", eventID).Do(); err != nil {
-		return err
-	}
-	return models.DeleteGoogleEventMapping(db, taskID)
-}
-
-func parseGoogleTime(s string) time.Time {
-	t, _ := time.Parse(time.RFC3339, s)
-	return t
 }
