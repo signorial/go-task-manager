@@ -28,29 +28,19 @@ const (
 
 // Event maps directly to your database schema using struct tags
 type Event struct {
-	ID          string `db:"id"`
-	Summary     string `db:"summary"`
-	Description string `db:"description"`
-	StartTime   string `db:"start_time"`
-	EndTime     string `db:"end_time"`
-	UpdatedAt   string `db:"updated_at"`
-	Dirty       bool   `db:"dirty"`
-	Deleted     bool   `db:"deleted"`
+	ID            string `db:"id"`
+	Summary       string `db:"summary"`
+	Description   string `db:"description"`
+	StartTime     string `db:"start_time"`
+	EndTime       string `db:"end_time"`
+	UpdatedAt     string `db:"updated_at"`
+	addtotasksdb  bool   `db:"addtotasksdb"`
+	addtocalendar bool   `db:"addtocalendar"`
+	Deleted       bool   `db:"deleted"`
 }
 
 func Twowaysync(db *sqlx.DB) error {
 	ctx := context.Background()
-
-	// 1. Initialize SQLite Database using sqlx
-	db, err := sqlx.Connect("sqlite", dbFile)
-	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
-	}
-	defer db.Close()
-
-	if err := initDatabase(db); err != nil {
-		log.Fatalf("Database setup failed: %v", err)
-	}
 
 	// 2. Auth Google Client
 	client, err := getClient(ctx, credentialsFile)
@@ -91,8 +81,10 @@ func initDatabase(db *sqlx.DB) error {
 			start_time TEXT,
 			end_time TEXT,
 			updated_at TEXT,
-			dirty INTEGER DEFAULT 0,
+			addtotasksdb INTEGER DEFAULT 0,
+			addtocalendar INTEGER DEFAULT 0,
 			deleted INTEGER DEFAULT 0
+			
 		);`,
 	}
 	for _, q := range queries {
@@ -150,7 +142,7 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 				}
 
 				_, err = tx.Exec(`
-					INSERT INTO events (id, summary, description, start_time, end_time, updated_at, dirty, deleted)
+					INSERT INTO events (id, summary, description, start_time, end_time, updated_at, addtotasksdb,addtocalendar, deleted)
 					VALUES (?, ?, ?, ?, ?, ?, 0, 0)
 					ON CONFLICT(id) DO UPDATE SET
 						summary=excluded.summary,
@@ -158,7 +150,8 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 						start_time=excluded.start_time,
 						end_time=excluded.end_time,
 						updated_at=excluded.updated_at,
-						dirty=0,
+						addtotasksdb=1,
+						addtocalendar=0,
 						deleted=0
 				`, item.Id, item.Summary, item.Description, start, end, item.Updated)
 			}
@@ -188,12 +181,12 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 	return nil
 }
 
-// --- SQLITE TO GOOGLE (PUSH VIA DIRTY/DELETED FLAGS) ---
+// --- SQLITE TO GOOGLE (PUSH VIA addtocalendar/DELETED FLAGS) ---
 
 func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 	var localEvents []Event
 	// sqlx automatically maps database fields to struct attributes
-	err := db.Select(&localEvents, "SELECT * FROM events WHERE dirty = 1")
+	err := db.Select(&localEvents, "SELECT * FROM events WHERE addtocalendar = 1")
 	if err != nil {
 		return err
 	}
@@ -221,7 +214,7 @@ func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 			gEvent.Id = ""
 			res, err := srv.Events.Insert("primary", gEvent).Do()
 			if err == nil {
-				_, _ = db.Exec("UPDATE events SET id = ?, dirty = 0, updated_at = ? WHERE id = ?", res.Id, res.Updated, ev.ID)
+				_, _ = db.Exec("UPDATE events SET id = ?, addtocalendar = 0, updated_at = ? WHERE id = ?", res.Id, res.Updated, ev.ID)
 			}
 			apiErr = err
 		} else {
