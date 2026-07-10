@@ -25,6 +25,7 @@ type Task struct {
 	EstimatedHours *float64   `db:"estimated_hours": json:"estimated_hours" jsonschema_description:"Estimated hours to complete the task based on task description"`
 	Progress       *int64     `db:"progress":        json:"progress"        jsonschema_description:"Progress percentage (0-100)"`
 	ParentTaskID   *int64     `db:"parent_task_id":  json:"parent_task_id"  jsonschema_description:"ID of parent task if this is a subtask. leave blank if this is not a subtask"`
+	Deleted        bool       `db:"deleted":         json:"deleted"         jsonschema_description:"flags whether the task has been deleted"`
 }
 
 func StartDatabase() (*sqlx.DB, error) {
@@ -51,7 +52,7 @@ func StartDatabase() (*sqlx.DB, error) {
 		estimated_hours  FLOAT,
 		progress         INTEGER,
 		parent_task_id   INTEGER
-
+		deleted INTEGER DEFAULT 0
 	);`
 
 	db.MustExec(schema) // creates table if it doesn't exist
@@ -60,7 +61,7 @@ func StartDatabase() (*sqlx.DB, error) {
 
 func DBGetTasks(db *sqlx.DB) ([]Task, error) {
 	var tasks []Task
-	query := `SELECT * FROM tasks`
+	query := `SELECT * FROM tasks WHERE deleted = 0`
 	err := db.Select(&tasks, query)
 	if err != nil {
 		return nil, err
@@ -85,7 +86,7 @@ func DBDeleteTask(db *sqlx.DB, taskID int64) error {
 		return fmt.Errorf("wrong ID or task has already been deleted %d %v", taskID, err)
 	}
 
-	query := `DELETE FROM tasks WHERE task_id=?`
+	query := `UPDATE tasks SET deleted = 1 WHERE task_id=?`
 	_, err = db.Exec(query, taskID)
 	if err != nil {
 		return err
@@ -97,11 +98,11 @@ func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
 	query := `INSERT INTO tasks (
                 description, status, created_at, updated_at, priority,
                 assignee_id, do_date, final_due_date, start_time, end_time,
-                completed_at, estimated_hours, progress, parent_task_id
+                completed_at, estimated_hours, progress, parent_task_id,deleted
             ) VALUES (
                 :description, :status, :created_at, :updated_at, :priority,
                 :assignee_id, :do_date, :final_due_date, :start_time, :end_time,
-                :completed_at, :estimated_hours, :progress, :parent_task_id
+              	:completed_at, :estimated_hours, :progress, :parent_task_id,:deleted
             )`
 
 	result, err := db.NamedExec(query, task)
