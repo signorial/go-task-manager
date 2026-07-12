@@ -46,7 +46,7 @@ func StartDatabase() (*sqlx.DB, error) {
 		assignee_id      INTEGER,
 		do_date          DATETIME,
 		final_due_date   DATETIME,
-		start_time        DATETIME,
+		start_time       DATETIME,
 		end_time         DATETIME,
 		completed_at     DATETIME,
 		estimated_hours  FLOAT,
@@ -54,7 +54,7 @@ func StartDatabase() (*sqlx.DB, error) {
 		parent_task_id   INTEGER
 		deleted INTEGER DEFAULT 0
 	);`
-
+	// trigger a update
 	db.MustExec(schema) // creates table if it doesn't exist
 	return db, err
 }
