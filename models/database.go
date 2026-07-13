@@ -54,7 +54,7 @@ func StartDatabase() (*sqlx.DB, error) {
 		parent_task_id   INTEGER
 		deleted INTEGER DEFAULT 0
 	);`
-	// trigger a update
+
 	db.MustExec(schema) // creates table if it doesn't exist
 	return db, err
 }
