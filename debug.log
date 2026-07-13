@@ -9,3 +9,6 @@
 [2mJul 10 09:53:10.137[0m [92mINF[0m entering google calendar sync
 [2mJul 10 09:53:10.138[0m [92mINF[0m ⚠️ Error pushing local changes: SQL logic error: no such column: addtocalendar (1)
 [2mJul 10 09:53:10.679[0m [92mINF[0m exited google calendar sync
+[2mJul 13 14:25:52.519[0m [92mINF[0m entering google calendar sync
+[2mJul 13 14:25:52.520[0m [92mINF[0m ⚠️ Error pushing local changes: SQL logic error: no such table: events (1)
+[2mJul 13 14:25:53.173[0m [92mINF[0m exited google calendar sync

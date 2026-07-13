@@ -75,16 +75,18 @@ func initDatabase(db *sqlx.DB) error {
 			value TEXT
 		);`,
 		`CREATE TABLE IF NOT EXISTS events (
-			id TEXT PRIMARY KEY,
-			summary TEXT,
-			description TEXT,
-			start_time TEXT,
-			end_time TEXT,
-			updated_at TEXT,
-			updatetasksdb INTEGER DEFAULT 0,
-			updatecalendar INTEGER DEFAULT 0,
-			deleted INTEGER DEFAULT 0
-			
+			id 								TEXT PRIMARY KEY,
+			summary 					TEXT,
+			description 			TEXT,
+			start_time 				TEXT,
+			end_time 					TEXT,
+			updated_at 				TEXT,
+			updatetasksdb 		INTEGER DEFAULT 0,
+			updatecalendar 		INTEGER DEFAULT 0,
+			deleted					 	INTEGER DEFAULT 0,
+			FK_tasks_task_id	INTEGER
+		  FOREIGN KEY (FK_tasks_task_id)
+			REFERENCES taks(task_id)
 		);`,
 	}
 	for _, q := range queries {
@@ -129,7 +131,7 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 
 		for _, item := range events.Items {
 			if item.Status == "cancelled" {
-				_, err = tx.Exec("UPDATE events SET deleted = 1 WHERE id = ?", item.Id)
+				_, err = tx.Exec("DELETE FROM events WHERE id = ?", item.Id)
 			} else {
 				start := item.Start.DateTime
 				if start == "" {
@@ -180,97 +182,31 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 	return nil
 }
 
-// --- GOOGLE TO SQLITE (PULL VIA SYNC TOKEN) ---
-func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
-	var syncToken string
-	err := db.Get(&syncToken, "SELECT value FROM sync_meta WHERE key = 'sync_token'")
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+// ---  SQLITE EVENTS to TASKS ---
+func updatetaskswithevents(db *sqlx.DB) error {
+	var localEvents []Event
+
+	// sqlx automatically maps database fields to struct attributes
+	err := db.Select(&localEvents, "SELECT * FROM events WHERE updatetasksdb = 1")
+	if err != nil {
 		return err
 	}
 
-	req := srv.Events.List("primary").ShowDeleted(true).SingleEvents(true)
-	if syncToken != "" {
-		req.SyncToken(syncToken)
-	} else {
-		req.TimeMin(time.Now().AddDate(0, 0, -30).Format(time.RFC3339))
-	}
-
-	for {
-		events, err := req.Do()
-		if err != nil {
-			var gErr *googleapi.Error
-			if errors.As(err, &gErr) && gErr.Code == http.StatusGone {
-				fmt.Println("Sync token expired. Resetting baseline...")
-				_, _ = db.Exec("DELETE FROM sync_meta WHERE key = 'sync_token'")
-				return pullRemoteChanges(db, srv)
-			}
-			return err
-		}
-
-		tx, err := db.Beginx()
-		if err != nil {
-			return err
-		}
-
-		for _, item := range events.Items {
-			if item.Status == "cancelled" {
-				_, err = tx.Exec("UPDATE events SET deleted = 1 WHERE id = ?", item.Id)
-			} else {
-				start := item.Start.DateTime
-				if start == "" {
-					start = item.Start.Date
-				}
-				end := item.End.DateTime
-				if end == "" {
-					end = item.End.Date
-				}
-
-				_, err = tx.Exec(`
-					INSERT INTO events (id, summary, description, start_time, end_time, updated_at, updatetasksdb,updatecalendar, deleted)
-					VALUES (?, ?, ?, ?, ?, ?, 0, 0)
-					ON CONFLICT(id) DO UPDATE SET
-						summary=excluded.summary,
-						description=excluded.description,
-						start_time=excluded.start_time,
-						end_time=excluded.end_time,
-						updated_at=excluded.updated_at,
-						updatetasksdb=1,
-						updatecalendar=0,
-						deleted=0
-				`, item.Id, item.Summary, item.Description, start, end, item.Updated)
-			}
-			if err != nil {
-				_ = tx.Rollback()
-				return err
-			}
-		}
-
-		if err := tx.Commit(); err != nil {
-			return err
-		}
-
-		if events.NextPageToken != "" {
-			req.PageToken(events.NextPageToken)
-		} else {
-			if events.NextSyncToken != "" {
-				_, err = db.Exec(`INSERT INTO sync_meta (key, value) VALUES ('sync_token', ?) 
-					ON CONFLICT(key) DO UPDATE SET value=excluded.value`, events.NextSyncToken)
-				if err != nil {
-					return err
-				}
-			}
-			break
+	for _, ev := range localEvents {
+		if ev.Deleted {
+			_, _ = db.Exec("UPDATE tasks SET deleted = 1  WHERE id = ?", ev.ID) // no longer deleting items
+			continue
 		}
 	}
 	return nil
 }
 
-// --- EVENTS TO TASKS DATABASE ---
+// --- SQLITE TO GOOGLE (PUSH VIA updatecalendar/DELETED FLAGS) ---
 
-func pushcalendarchangestotasks(db *sqlx.DB) error {
+func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 	var localEvents []Event
 	// sqlx automatically maps database fields to struct attributes
-	err := db.Select(&localEvents, "SELECT * FROM events WHERE updatetasksdb = 1")
+	err := db.Select(&localEvents, "SELECT * FROM events WHERE updatecalendar = 1")
 	if err != nil {
 		return err
 	}
@@ -282,7 +218,7 @@ func pushcalendarchangestotasks(db *sqlx.DB) error {
 				log.Printf("Failed to push deletion for event %s: %v", ev.ID, err)
 				continue
 			}
-			_, _ = db.Exec("DELETE FROM events WHERE id = ?", ev.ID)
+			//	_, _ = db.Exec("DELETE FROM events WHERE id = ?", ev.ID) //no longer deleting items
 			continue
 		}
 
