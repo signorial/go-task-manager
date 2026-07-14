@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lufraser/gotaskmanager/models"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
@@ -28,15 +29,16 @@ const (
 
 // Event maps directly to your database schema using struct tags
 type Event struct {
-	ID             string `db:"id"`
-	Summary        string `db:"summary"`
-	Description    string `db:"description"`
-	StartTime      string `db:"start_time"`
-	EndTime        string `db:"end_time"`
-	UpdatedAt      string `db:"updated_at"`
-	updatetasksdb  bool   `db:"updatetasksdb"`
-	updatecalendar bool   `db:"updatecalendar"`
-	Deleted        bool   `db:"deleted"`
+	ID               string `db:"id"`
+	Summary          string `db:"summary"`
+	Description      string `db:"description"`
+	StartTime        string `db:"start_time"`
+	EndTime          string `db:"end_time"`
+	UpdatedAt        string `db:"updated_at"`
+	UpdateTasksDB    bool   `db:"update_tasks_db"`
+	UpdateCalendar   bool   `db:"update_calendar"`
+	Deleted          bool   `db:"deleted"`
+	FK_tasks_task_id int64  `db:"FK_tasks_task_id"`
 }
 
 func Twowaysync(db *sqlx.DB) error {
@@ -81,12 +83,12 @@ func initDatabase(db *sqlx.DB) error {
 			start_time 				TEXT,
 			end_time 					TEXT,
 			updated_at 				TEXT,
-			updatetasksdb 		INTEGER DEFAULT 0,
-			updatecalendar 		INTEGER DEFAULT 0,
+			UpdateTasksDB 		INTEGER DEFAULT 0,
+			UpdateCalendar 		INTEGER DEFAULT 0,
 			deleted					 	INTEGER DEFAULT 0,
 			FK_tasks_task_id	INTEGER
 		  FOREIGN KEY (FK_tasks_task_id)
-			REFERENCES taks(task_id)
+			REFERENCES tasks(task_id)
 		);`,
 	}
 	for _, q := range queries {
@@ -131,31 +133,33 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 
 		for _, item := range events.Items {
 			if item.Status == "cancelled" {
-				_, err = tx.Exec("DELETE FROM events WHERE id = ?", item.Id)
+				delflag := 1
 			} else {
-				start := item.Start.DateTime
-				if start == "" {
-					start = item.Start.Date
-				}
-				end := item.End.DateTime
-				if end == "" {
-					end = item.End.Date
-				}
+				delflag := 0
+			}
 
-				_, err = tx.Exec(`
-					INSERT INTO events (id, summary, description, start_time, end_time, updated_at, updatetasksdb,updatecalendar, deleted)
-					VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+			start := item.Start.DateTime
+			if start == "" {
+				start = item.Start.Date
+			}
+			end := item.End.DateTime
+			if end == "" {
+				end = item.End.Date
+			}
+
+			_, err = tx.Exec(`
+					INSERT INTO events (id, summary, description, start_time, end_time, updated_at, UpdateTasksDB,UpdateCalendar, deleted)
+					VALUES (?, ?, ?, ?, ?, ?, 0,0, 0)
 					ON CONFLICT(id) DO UPDATE SET
 						summary=excluded.summary,
 						description=excluded.description,
 						start_time=excluded.start_time,
 						end_time=excluded.end_time,
 						updated_at=excluded.updated_at,
-						updatetasksdb=1,
-						updatecalendar=0,
-						deleted=0
+						UpdateTasksDB=1,
+						UpdateCalendar=0,
+						deleted=delflag
 				`, item.Id, item.Summary, item.Description, start, end, item.Updated)
-			}
 			if err != nil {
 				_ = tx.Rollback()
 				return err
@@ -185,28 +189,103 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 // ---  SQLITE EVENTS to TASKS ---
 func updatetaskswithevents(db *sqlx.DB) error {
 	var localEvents []Event
+	var task models.Task
 
 	// sqlx automatically maps database fields to struct attributes
-	err := db.Select(&localEvents, "SELECT * FROM events WHERE updatetasksdb = 1")
+	err := db.Select(&localEvents, "SELECT * FROM events WHERE UpdateTasksDB = 1")
 	if err != nil {
 		return err
 	}
 
 	for _, ev := range localEvents {
 		if ev.Deleted {
-			_, _ = db.Exec("UPDATE tasks SET deleted = 1  WHERE id = ?", ev.ID) // no longer deleting items
+			_, _ = db.Exec("UPDATE tasks SET deleted = 1  WHERE task_id = ?", ev.FK_tasks_task_id) // no longer deleting items
 			continue
 		}
+
+		task, err = models.DBGetTask(db, ev.FK_tasks_task_id)
+		task = convertEventToTask(ev, task)
+
+		// 	_, err = tx.Exec(`
+		// 		INSERT INTO tasks (id, summary, description, start_time, end_time, updated_at, UpdateTasksDB,UpdateCalendar, deleted,FK_tasks_task_id)
+		// 		VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+		// 		ON CONFLICT(id) DO UPDATE SET
+		// 			summary=excluded.summary,
+		// 			description=excluded.description,
+		// 			start_time=excluded.start_time,
+		// 			end_time=excluded.end_time,
+		// 			updated_at=excluded.updated_at,
+		// 			UpdateTasksDB=1,
+		// 			UpdateCalendar=0,
+		// 			deleted=0
+		// 	`, item.Id, item.Summary, item.Description, start, end, item.Updated)
+		// }
+
+		// func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
+		// 	query := `INSERT INTO tasks (
+		//                 description, status, created_at, updated_at, priority,
+		//                 assignee_id, do_date, final_due_date, start_time, end_time,
+		//                 completed_at, estimated_hours, progress, parent_task_id,deleted
+		//             ) VALUES (
+		//                 :description, :status, :created_at, :updated_at, :priority,
+		//                 :assignee_id, :do_date, :final_due_date, :start_time, :end_time,
+		//               	:completed_at, :estimated_hours, :progress, :parent_task_id,:deleted
+		//             )`
+		//
 	}
+
 	return nil
 }
 
-// --- SQLITE TO GOOGLE (PUSH VIA updatecalendar/DELETED FLAGS) ---
+// convert task to event
+func convertEventToTask(e Event, t models.Task) models.Task {
+	t.Description = e.Description
+	// status:
+	// created_at:
+	var err error
+
+	dt, err := time.Parse(time.RFC3339, e.UpdatedAt)
+	if err != nil {
+		log.Printf("failed to convert string date to time %s, %v", e.UpdatedAt, err)
+	} else {
+		t.UpdatedAt = &dt
+	}
+	// priority:
+	// assignee_id:
+	// do_date:
+	dt, err = time.Parse(time.RFC3339, e.EndTime)
+	if err != nil {
+		log.Printf("failed to convert string date to time %s, %v", e.EndTime, err)
+	} else {
+		t.FinalDueDate = &dt
+	}
+	dt, err = time.Parse(time.RFC3339, e.StartTime)
+	if err != nil {
+		log.Printf("failed to convert string date to time %s, %v", e.StartTime, err)
+	} else {
+		t.StartTime = &dt
+	}
+	dt, err = time.Parse(time.RFC3339, e.EndTime)
+	if err != nil {
+		log.Printf("failed to convert string date to time %s, %v", e.EndTime, err)
+	} else {
+		t.EndTime = &dt
+	}
+	// completed_at:
+	// estimated_hours:
+	// progress:
+	// parent_task_id:
+	t.Deleted = e.Deleted
+
+	return t
+}
+
+// --- SQLITE TO GOOGLE (PUSH VIA UpdateCalendar/DELETED FLAGS) ---
 
 func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 	var localEvents []Event
 	// sqlx automatically maps database fields to struct attributes
-	err := db.Select(&localEvents, "SELECT * FROM events WHERE updatecalendar = 1")
+	err := db.Select(&localEvents, "SELECT * FROM events WHERE UpdateCalendar = 1")
 	if err != nil {
 		return err
 	}
@@ -234,13 +313,13 @@ func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 			gEvent.Id = ""
 			res, err := srv.Events.Insert("primary", gEvent).Do()
 			if err == nil {
-				_, _ = db.Exec("UPDATE events SET id = ?, updatecalendar = 0, updated_at = ? WHERE id = ?", res.Id, res.Updated, ev.ID)
+				_, _ = db.Exec("UPDATE events SET id = ?, UpdateCalendar = 0, updated_at = ? WHERE id = ?", res.Id, res.Updated, ev.ID)
 			}
 			apiErr = err
 		} else {
 			res, err := srv.Events.Update("primary", ev.ID, gEvent).Do()
 			if err == nil {
-				_, _ = db.Exec("UPDATE events SET updatecalendar = 0, updated_at = ? WHERE id = ?", res.Updated, ev.ID)
+				_, _ = db.Exec("UPDATE events SET UpdateCalendar = 0, updated_at = ? WHERE id = ?", res.Updated, ev.ID)
 			}
 			apiErr = err
 		}
