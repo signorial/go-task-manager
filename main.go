@@ -61,7 +61,7 @@ func main() {
 	defer db.Close() // closes the file after the app finishes
 
 	slog.Info("entering google calendar sync")
-	err = googlecalendarsync.Twowaysync(db)
+	err = googlecalendarsync.TwoWaySync(db)
 	if err != nil {
 		slog.Error("google calendar failed to sync:", "err", err)
 		fmt.Fprintf(os.Stderr, "google calendar failed to sync: %v\n", err)

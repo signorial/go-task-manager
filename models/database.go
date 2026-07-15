@@ -55,12 +55,14 @@ func StartDatabase() (*sqlx.DB, error) {
 		deleted INTEGER DEFAULT 0
 	);`
 
-	schema +=		`CREATE TABLE IF NOT EXISTS sync_meta (
+	schema += `
+		CREATE TABLE IF NOT EXISTS sync_meta (
 			key TEXT PRIMARY KEY,
 			value TEXT
 		);`
 
-	schema += `CREATE TABLE IF NOT EXISTS events (
+	schema += `
+		CREATE TABLE IF NOT EXISTS events (
 			id 								TEXT PRIMARY KEY,
 			summary 					TEXT,
 			description 			TEXT,
@@ -74,17 +76,13 @@ func StartDatabase() (*sqlx.DB, error) {
 		  FOREIGN KEY (FK_tasks_task_id)
 			REFERENCES tasks(task_id)
 		);`
-	
-	for _, q := range queries {
-		if _, err := db.Exec(q); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
-
-
+	// for _, q := range queries {
+	// 	if _, err := db.Exec(q); err != nil {
+	// 		return err
+	// 	}
+	// }
+	// return nil
 
 	db.MustExec(schema) // creates table if it doesn't exist
 	return db, err
@@ -146,6 +144,32 @@ func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
 		return 0, err
 	}
 	return id, nil
+}
+
+func DBUpdateTask(db *sqlx.DB, task Task) error {
+	query := `UPDATE tasks SET 
+		description = :description,
+		status = :status,
+		updated_at = :updated_at,
+		priority = :priority,
+		assignee_id = :assignee_id,
+		do_date = :do_date,
+		final_due_date = :final_due_date,
+		start_time = :start_time,
+		end_time = :end_time,
+		completed_at = :completed_at,
+		estimated_hours = :estimated_hours,
+		progress = :progress,
+		parent_task_id = :parent_task_id,
+		deleted = :deleted
+	WHERE task_id = :task_id`
+
+	_, err := db.NamedExec(query, task)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func DBCompleteTask(db *sqlx.DB, taskID int64) error {

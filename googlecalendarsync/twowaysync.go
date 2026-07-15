@@ -66,6 +66,11 @@ func TwoWaySync(db *sqlx.DB) error {
 		log.Fatalf("❌ Error pulling remote changes: %v", err)
 	}
 
+	fmt.Println("⬅️ Pushing changes to events to tasks table...")
+	if err := updatetaskswithevents(db); err != nil {
+		log.Fatalf("❌ Error pushing changes from events to tasks: %v", err)
+	}
+
 	fmt.Println("✅ Synchronization round-trip complete.")
 	return nil
 }
@@ -193,7 +198,7 @@ func updatetaskswithevents(db *sqlx.DB) error {
 	var task models.Task
 
 	// sqlx automatically maps database fields to struct attributes
-	err := db.Select(&localEvents, "SELECT * FROM events WHERE UpdateTasksDB = 1")
+	err := db.Select(&localEvents, "SELECT * FROM events WHERE update_tasks_db = 1")
 	if err != nil {
 		return err
 	}
@@ -204,36 +209,34 @@ func updatetaskswithevents(db *sqlx.DB) error {
 			continue
 		}
 
-		task, err = models.DBGetTask(db, ev.FK_tasks_task_id)
-		evTask := convertEventToTask(ev, task)
-		log.Printf("evtask %v", evTask)
+		if ev.FK_tasks_task_id != 0 {
+			// get the task
+			task, err = models.DBGetTask(db, ev.FK_tasks_task_id)
+			if err != nil {
+				log.Printf("failed to get task %v", err)
+			}
+			// convert event to task
+			evTask, err := convertEventToTask(ev, task)
+			if err != nil {
+				log.Printf("evtask %v", evTask)
+			}
+			err = models.DBUpdateTask(db, evTask)
+			if err != nil {
+				log.Printf("Failed to update task from events to tasks %v", err)
+			}
+		} else {
+			// convert event to task
+			evTask, err := convertEventToTask(ev, task)
+			if err != nil {
+				log.Printf("evtask %v", evTask)
+			}
+			id, err := models.DBAddTask(db, evTask)
+			if err != nil {
+				log.Printf("Failed to add task from events to tasks %v", err)
+			}
+			UpdateForeignKey(db, ev.ID, id)
+		}
 
-		// 	_, err = tx.Exec(`
-		// 		INSERT INTO tasks (id, summary, description, start_time, end_time, updated_at, UpdateTasksDB,UpdateCalendar, deleted,FK_tasks_task_id)
-		// 		VALUES (?, ?, ?, ?, ?, ?, 0, 0)
-		// 		ON CONFLICT(id) DO UPDATE SET
-		// 			summary=excluded.summary,
-		// 			description=excluded.description,
-		// 			start_time=excluded.start_time,
-		// 			end_time=excluded.end_time,
-		// 			updated_at=excluded.updated_at,
-		// 			UpdateTasksDB=1,
-		// 			UpdateCalendar=0,
-		// 			deleted=0
-		// 	`, item.Id, item.Summary, item.Description, start, end, item.Updated)
-		// }
-
-		// func DBAddTask(db *sqlx.DB, task Task) (int64, error) {
-		// 	query := `INSERT INTO tasks (
-		//                 description, status, created_at, updated_at, priority,
-		//                 assignee_id, do_date, final_due_date, start_time, end_time,
-		//                 completed_at, estimated_hours, progress, parent_task_id,deleted
-		//             ) VALUES (
-		//                 :description, :status, :created_at, :updated_at, :priority,
-		//                 :assignee_id, :do_date, :final_due_date, :start_time, :end_time,
-		//               	:completed_at, :estimated_hours, :progress, :parent_task_id,:deleted
-		//             )`
-		//
 	}
 
 	return nil
@@ -241,8 +244,8 @@ func updatetaskswithevents(db *sqlx.DB) error {
 
 // convert task to event
 func convertEventToTask(e Event, t models.Task) (models.Task, error) {
-	t.Description = e.Description
-	// status:
+	t.Description = e.Summary
+	t.Status = "Pending"
 	// created_at:
 	var err error
 
@@ -287,7 +290,7 @@ func convertEventToTask(e Event, t models.Task) (models.Task, error) {
 func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 	var localEvents []Event
 	// sqlx automatically maps database fields to struct attributes
-	err := db.Select(&localEvents, "SELECT * FROM events WHERE UpdateCalendar = 1")
+	err := db.Select(&localEvents, "SELECT * FROM events WHERE update_calendar = 1")
 	if err != nil {
 		return err
 	}
@@ -315,13 +318,13 @@ func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 			gEvent.Id = ""
 			res, err := srv.Events.Insert("primary", gEvent).Do()
 			if err == nil {
-				_, _ = db.Exec("UPDATE events SET id = ?, UpdateCalendar = 0, updated_at = ? WHERE id = ?", res.Id, res.Updated, ev.ID)
+				_, _ = db.Exec("UPDATE events SET id = ?, update_calendar = 0, updated_at = ? WHERE id = ?", res.Id, res.Updated, ev.ID)
 			}
 			apiErr = err
 		} else {
 			res, err := srv.Events.Update("primary", ev.ID, gEvent).Do()
 			if err == nil {
-				_, _ = db.Exec("UPDATE events SET UpdateCalendar = 0, updated_at = ? WHERE id = ?", res.Updated, ev.ID)
+				_, _ = db.Exec("UPDATE events SET update_calendar = 0, updated_at = ? WHERE id = ?", res.Updated, ev.ID)
 			}
 			apiErr = err
 		}
@@ -393,4 +396,14 @@ func saveToken(path string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
+}
+
+func UpdateForeignKey(db *sqlx.DB, EventID string, FK_tasks_task_id int64) error {
+	query := `UPDATE events SET FK_tasks_task_id = ? WHERE task_id=?`
+	_, err := db.Exec(query, FK_tasks_task_id, EventID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
