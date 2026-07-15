@@ -41,7 +41,7 @@ type Event struct {
 	FK_tasks_task_id int64  `db:"FK_tasks_task_id"`
 }
 
-func Twowaysync(db *sqlx.DB) error {
+func TwoWaySync(db *sqlx.DB) error {
 	ctx := context.Background()
 
 	// 2. Auth Google Client
@@ -70,34 +70,34 @@ func Twowaysync(db *sqlx.DB) error {
 	return nil
 }
 
-func initDatabase(db *sqlx.DB) error {
-	queries := []string{
-		`CREATE TABLE IF NOT EXISTS sync_meta (
-			key TEXT PRIMARY KEY,
-			value TEXT
-		);`,
-		`CREATE TABLE IF NOT EXISTS events (
-			id 								TEXT PRIMARY KEY,
-			summary 					TEXT,
-			description 			TEXT,
-			start_time 				TEXT,
-			end_time 					TEXT,
-			updated_at 				TEXT,
-			UpdateTasksDB 		INTEGER DEFAULT 0,
-			UpdateCalendar 		INTEGER DEFAULT 0,
-			deleted					 	INTEGER DEFAULT 0,
-			FK_tasks_task_id	INTEGER
-		  FOREIGN KEY (FK_tasks_task_id)
-			REFERENCES tasks(task_id)
-		);`,
-	}
-	for _, q := range queries {
-		if _, err := db.Exec(q); err != nil {
-			return err
-		}
-	}
-	return nil
-}
+// func initDatabase(db *sqlx.DB) error {
+// 	queries := []string{
+// 		`CREATE TABLE IF NOT EXISTS sync_meta (
+// 			key TEXT PRIMARY KEY,
+// 			value TEXT
+// 		);`,
+// 		`CREATE TABLE IF NOT EXISTS events (
+// 			id 								TEXT PRIMARY KEY,
+// 			summary 					TEXT,
+// 			description 			TEXT,
+// 			start_time 				TEXT,
+// 			end_time 					TEXT,
+// 			updated_at 				TEXT,
+// 			update_tasks_db 		INTEGER DEFAULT 0,
+// 			update_calendar 		INTEGER DEFAULT 0,
+// 			deleted					 	INTEGER DEFAULT 0,
+// 			FK_tasks_task_id	INTEGER
+// 		  FOREIGN KEY (FK_tasks_task_id)
+// 			REFERENCES tasks(task_id)
+// 		);`,
+// 	}
+// 	for _, q := range queries {
+// 		if _, err := db.Exec(q); err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
 
 // --- GOOGLE TO SQLITE (PULL VIA SYNC TOKEN) ---
 func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
@@ -132,10 +132,11 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 		}
 
 		for _, item := range events.Items {
+			var deleted int64
 			if item.Status == "cancelled" {
-				delflag := 1
+				deleted = 1
 			} else {
-				delflag := 0
+				deleted = 0
 			}
 
 			start := item.Start.DateTime
@@ -148,18 +149,18 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 			}
 
 			_, err = tx.Exec(`
-					INSERT INTO events (id, summary, description, start_time, end_time, updated_at, UpdateTasksDB,UpdateCalendar, deleted)
-					VALUES (?, ?, ?, ?, ?, ?, 0,0, 0)
+					INSERT INTO events (id, summary, description, start_time, end_time, updated_at, update_tasks_db,update_calendar, deleted)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 					ON CONFLICT(id) DO UPDATE SET
 						summary=excluded.summary,
 						description=excluded.description,
 						start_time=excluded.start_time,
 						end_time=excluded.end_time,
 						updated_at=excluded.updated_at,
-						UpdateTasksDB=1,
-						UpdateCalendar=0,
-						deleted=delflag
-				`, item.Id, item.Summary, item.Description, start, end, item.Updated)
+						update_tasks_db=excluded.update_tasks_db,
+						update_calendar=excluded.update_calendar,
+						deleted=excluded.deleted
+				`, item.Id, item.Summary, item.Description, start, end, item.Updated, 1, 0, deleted)
 			if err != nil {
 				_ = tx.Rollback()
 				return err
@@ -204,7 +205,8 @@ func updatetaskswithevents(db *sqlx.DB) error {
 		}
 
 		task, err = models.DBGetTask(db, ev.FK_tasks_task_id)
-		task = convertEventToTask(ev, task)
+		evTask := convertEventToTask(ev, task)
+		log.Printf("evtask %v", evTask)
 
 		// 	_, err = tx.Exec(`
 		// 		INSERT INTO tasks (id, summary, description, start_time, end_time, updated_at, UpdateTasksDB,UpdateCalendar, deleted,FK_tasks_task_id)
@@ -238,7 +240,7 @@ func updatetaskswithevents(db *sqlx.DB) error {
 }
 
 // convert task to event
-func convertEventToTask(e Event, t models.Task) models.Task {
+func convertEventToTask(e Event, t models.Task) (models.Task, error) {
 	t.Description = e.Description
 	// status:
 	// created_at:
@@ -277,7 +279,7 @@ func convertEventToTask(e Event, t models.Task) models.Task {
 	// parent_task_id:
 	t.Deleted = e.Deleted
 
-	return t
+	return t, err
 }
 
 // --- SQLITE TO GOOGLE (PUSH VIA UpdateCalendar/DELETED FLAGS) ---

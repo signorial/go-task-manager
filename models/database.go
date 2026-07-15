@@ -55,6 +55,37 @@ func StartDatabase() (*sqlx.DB, error) {
 		deleted INTEGER DEFAULT 0
 	);`
 
+	schema +=		`CREATE TABLE IF NOT EXISTS sync_meta (
+			key TEXT PRIMARY KEY,
+			value TEXT
+		);`
+
+	schema += `CREATE TABLE IF NOT EXISTS events (
+			id 								TEXT PRIMARY KEY,
+			summary 					TEXT,
+			description 			TEXT,
+			start_time 				TEXT,
+			end_time 					TEXT,
+			updated_at 				TEXT,
+			update_tasks_db 		INTEGER DEFAULT 0,
+			update_calendar 		INTEGER DEFAULT 0,
+			deleted					 	INTEGER DEFAULT 0,
+			FK_tasks_task_id	INTEGER
+		  FOREIGN KEY (FK_tasks_task_id)
+			REFERENCES tasks(task_id)
+		);`
+	
+	for _, q := range queries {
+		if _, err := db.Exec(q); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+
+
+
 	db.MustExec(schema) // creates table if it doesn't exist
 	return db, err
 }
