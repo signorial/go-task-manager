@@ -29,16 +29,16 @@ const (
 
 // Event maps directly to your database schema using struct tags
 type Event struct {
-	ID               string `db:"id"`
-	Summary          string `db:"summary"`
-	Description      string `db:"description"`
-	StartTime        string `db:"start_time"`
-	EndTime          string `db:"end_time"`
-	UpdatedAt        string `db:"updated_at"`
-	UpdateTasksDB    bool   `db:"update_tasks_db"`
-	UpdateCalendar   bool   `db:"update_calendar"`
-	Deleted          bool   `db:"deleted"`
-	FK_tasks_task_id int64  `db:"FK_tasks_task_id"`
+	ID             string `db:"id"`
+	Summary        string `db:"summary"`
+	Description    string `db:"description"`
+	StartTime      string `db:"start_time"`
+	EndTime        string `db:"end_time"`
+	UpdatedAt      string `db:"updated_at"`
+	UpdateTasksDB  bool   `db:"update_tasks_db"`
+	UpdateCalendar bool   `db:"update_calendar"`
+	Deleted        bool   `db:"deleted"`
+	FKTasksTaskID  int64  `db:"FKTasksTaskID"`
 }
 
 func TwoWaySync(db *sqlx.DB) error {
@@ -91,8 +91,8 @@ func TwoWaySync(db *sqlx.DB) error {
 // 			update_tasks_db 		INTEGER DEFAULT 0,
 // 			update_calendar 		INTEGER DEFAULT 0,
 // 			deleted					 	INTEGER DEFAULT 0,
-// 			FK_tasks_task_id	INTEGER
-// 		  FOREIGN KEY (FK_tasks_task_id)
+// 			FKTasksTaskID	INTEGER
+// 		  FOREIGN KEY (FKTasksTaskID)
 // 			REFERENCES tasks(task_id)
 // 		);`,
 // 	}
@@ -144,13 +144,18 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 				deleted = 0
 			}
 
-			start := item.Start.DateTime
-			if start == "" {
-				start = item.Start.Date
+			if item.Start != nil {
+				start := item.Start.DateTime
+				if start == "" {
+					start = item.Start.Date
+				}
 			}
-			end := item.End.DateTime
-			if end == "" {
-				end = item.End.Date
+
+			if item.End != nil {
+				end := item.End.DateTime
+				if end == "" {
+					end = item.End.Date
+				}
 			}
 
 			_, err = tx.Exec(`
@@ -195,7 +200,6 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 // ---  SQLITE EVENTS to TASKS ---
 func updatetaskswithevents(db *sqlx.DB) error {
 	var localEvents []Event
-	var task models.Task
 
 	// sqlx automatically maps database fields to struct attributes
 	err := db.Select(&localEvents, "SELECT * FROM events WHERE update_tasks_db = 1")
@@ -205,13 +209,14 @@ func updatetaskswithevents(db *sqlx.DB) error {
 
 	for _, ev := range localEvents {
 		if ev.Deleted {
-			_, _ = db.Exec("UPDATE tasks SET deleted = 1  WHERE task_id = ?", ev.FK_tasks_task_id) // no longer deleting items
+			_, _ = db.Exec("UPDATE tasks SET deleted = 1  WHERE task_id = ?", ev.FKTasksTaskID) // no longer deleting items
+			ev.UpdateTasksDB = false
 			continue
 		}
 
-		if ev.FK_tasks_task_id != 0 {
+		if ev.FKTasksTaskID != 0 {
 			// get the task
-			task, err = models.DBGetTask(db, ev.FK_tasks_task_id)
+			task, err := models.DBGetTask(db, ev.FKTasksTaskID)
 			if err != nil {
 				log.Printf("failed to get task %v", err)
 			}
@@ -226,6 +231,7 @@ func updatetaskswithevents(db *sqlx.DB) error {
 			}
 		} else {
 			// convert event to task
+			var task models.Task
 			evTask, err := convertEventToTask(ev, task)
 			if err != nil {
 				log.Printf("evtask %v", evTask)
@@ -237,44 +243,46 @@ func updatetaskswithevents(db *sqlx.DB) error {
 			UpdateForeignKey(db, ev.ID, id)
 		}
 
+		ev.UpdateTasksDB = false
+
 	}
 
 	return nil
 }
 
-// convert task to event
+// convert event to task
 func convertEventToTask(e Event, t models.Task) (models.Task, error) {
 	t.Description = e.Summary
-	t.Status = "Pending"
+	// t.Status = ?????
 	// created_at:
 	var err error
 
-	dt, err := time.Parse(time.RFC3339, e.UpdatedAt)
+	dt, err := parseGoogleTime(e.UpdatedAt)
 	if err != nil {
 		log.Printf("failed to convert string date to time %s, %v", e.UpdatedAt, err)
 	} else {
-		t.UpdatedAt = &dt
+		t.UpdatedAt = dt
 	}
 	// priority:
 	// assignee_id:
 	// do_date:
-	dt, err = time.Parse(time.RFC3339, e.EndTime)
+	dt, err = parseGoogleTime(e.EndTime)
 	if err != nil {
 		log.Printf("failed to convert string date to time %s, %v", e.EndTime, err)
 	} else {
-		t.FinalDueDate = &dt
+		t.FinalDueDate = dt
 	}
-	dt, err = time.Parse(time.RFC3339, e.StartTime)
+	dt, err = parseGoogleTime(e.StartTime)
 	if err != nil {
 		log.Printf("failed to convert string date to time %s, %v", e.StartTime, err)
 	} else {
-		t.StartTime = &dt
+		t.StartTime = dt
 	}
-	dt, err = time.Parse(time.RFC3339, e.EndTime)
+	dt, err = parseGoogleTime(e.EndTime)
 	if err != nil {
 		log.Printf("failed to convert string date to time %s, %v", e.EndTime, err)
 	} else {
-		t.EndTime = &dt
+		t.EndTime = dt
 	}
 	// completed_at:
 	// estimated_hours:
@@ -283,6 +291,19 @@ func convertEventToTask(e Event, t models.Task) (models.Task, error) {
 	t.Deleted = e.Deleted
 
 	return t, err
+}
+
+func parseGoogleTime(s string) (*time.Time, error) {
+	if s == "" {
+		return nil, nil
+	}
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return &t, nil
+	}
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return &t, nil
+	}
+	return nil, fmt.Errorf("unsupported time format:  %q", s)
 }
 
 // --- SQLITE TO GOOGLE (PUSH VIA UpdateCalendar/DELETED FLAGS) ---
@@ -398,9 +419,9 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-func UpdateForeignKey(db *sqlx.DB, EventID string, FK_tasks_task_id int64) error {
-	query := `UPDATE events SET FK_tasks_task_id = ? WHERE task_id=?`
-	_, err := db.Exec(query, FK_tasks_task_id, EventID)
+func UpdateForeignKey(db *sqlx.DB, EventID string, FKTasksTaskID int64) error {
+	query := `UPDATE events SET FK_tasks_task_id = ? WHERE ID=?`
+	_, err := db.Exec(query, FKTasksTaskID, EventID)
 	if err != nil {
 		return err
 	}
