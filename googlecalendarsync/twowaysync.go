@@ -183,7 +183,11 @@ func UpdateTasksWithEvents(db *sqlx.DB) error {
 	for _, ev := range localEvents {
 		if ev.Deleted {
 			_, _ = db.Exec("UPDATE tasks SET deleted = 1  WHERE task_id = ?", ev.FKTasksTaskID) // no longer deleting items
-			ev.UpdateTasksDB = false
+			_, err := db.Exec("UPDATE events SET update_tasks_db = 0 WHERE id = ?", ev.ID)
+			if err != nil {
+				log.Printf("failed to update events update_tasks_db flag: %v", err)
+				continue
+			}
 			continue
 		}
 
@@ -205,7 +209,11 @@ func UpdateTasksWithEvents(db *sqlx.DB) error {
 				log.Printf("Failed to update task from events to tasks %v", err)
 				continue
 			}
-			ev.UpdateTasksDB = false
+			_, err = db.Exec("UPDATE events SET update_tasks_db = 0 WHERE id = ?", ev.ID)
+			if err != nil {
+				log.Printf("failed to update events update_tasks_db flag: %v", err)
+				continue
+			}
 		} else {
 			// convert event to task
 			var task models.Task
@@ -223,7 +231,11 @@ func UpdateTasksWithEvents(db *sqlx.DB) error {
 			if err != nil {
 				log.Printf("Failed to update foreign key: %v", err)
 			}
-			ev.UpdateTasksDB = false
+			_, err = db.Exec("UPDATE events SET update_tasks_db = 0 WHERE id = ?", ev.ID)
+			if err != nil {
+				log.Printf("failed to update events update_tasks_db flag: %v", err)
+				continue
+			}
 		}
 
 	}
@@ -307,6 +319,9 @@ func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 			if err != nil && !isNotFoundError(err) {
 				log.Printf("Failed to push deletion for event %s: %v", ev.ID, err)
 				continue
+			}
+			if err == nil {
+				_, _ = db.Exec("UPDATE events SET update_calendar = 0 WHERE id = ?", ev.ID)
 			}
 			//	_, _ = db.Exec("DELETE FROM events WHERE id = ?", ev.ID) //no longer deleting items
 			continue
