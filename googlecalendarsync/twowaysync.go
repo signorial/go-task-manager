@@ -333,7 +333,7 @@ func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 			Start:       &calendar.EventDateTime{DateTime: ev.StartTime},
 			End:         &calendar.EventDateTime{DateTime: ev.EndTime},
 		}
-		// TODO: fix the start tiem end time logic to handle dates and datetimes
+		// TODO: fix the start tiem end time logic to handle dates and datetimes this is a change
 
 		var apiErr error
 		if isLocalOnlyID(ev.ID) {
