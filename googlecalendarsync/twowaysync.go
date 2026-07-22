@@ -335,7 +335,6 @@ func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 		}
 		// TODO: fix the start tiem end time logic to handle dates and datetimes this is a change
 		// TODO-  need to return laptop
-		// TODO.  this is a todo
 
 		var apiErr error
 		if isLocalOnlyID(ev.ID) {
