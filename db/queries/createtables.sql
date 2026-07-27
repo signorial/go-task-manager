@@ -36,3 +36,4 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 --TODO: need to figure out how to run queries directly in neovim
+--TODO: no reason
