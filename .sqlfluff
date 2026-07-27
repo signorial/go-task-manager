@@ -1,0 +1,15 @@
+[sqlfluff]
+dialect = sqlite
+templater = jinja
+
+[sqlfluff:layout:type:column_definition]
+# Forces the column names, datatypes, and constraints to line up vertically
+spacing_before = align
+align_within = statement
+align_scope = bracketed
+
+[sqlfluff:layout:type:alias_expression]
+# Vertically aligns the "AS" statements inside your SELECT query lists
+spacing_before = align
+align_within = select_clause
+align_scope = bracketed

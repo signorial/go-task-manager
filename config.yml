@@ -1,0 +1,4 @@
+connections:
+  - driver: sqlite3
+    dataSourceName: ./calendar_sync.db
+
