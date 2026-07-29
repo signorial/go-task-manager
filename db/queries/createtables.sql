@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS events (
     deleted INTEGER DEFAULT 0,
     task_id INTEGER REFERENCES tasks (task_id)
 );
+select * from tasks
+
 
 --TODO: need to figure out how to run queries directly in neovim
---TODO: no reason
