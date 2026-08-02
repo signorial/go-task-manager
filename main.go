@@ -60,13 +60,13 @@ func main() {
 	db, err := models.StartDatabase()
 	defer db.Close() // closes the file after the app finishes
 
-	slog.Info("entering google calendar sync")
-	err = googlecalendarsync.TwoWaySync(db)
+	slog.Info("ENTERING google calendar sync")
+	err = googlecalendarsync.TwoWaySync(db, logger)
 	if err != nil {
 		slog.Error("google calendar failed to sync:", "err", err)
 		fmt.Fprintf(os.Stderr, "google calendar failed to sync: %v\n", err)
 	}
-	slog.Info("exited google calendar sync")
+	slog.Info("EXITING google calendar sync")
 
 	// Create tview app
 	app := tview.NewApplication()

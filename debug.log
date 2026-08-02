@@ -12,3 +12,40 @@
 [2mJul 13 14:25:52.519[0m [92mINF[0m entering google calendar sync
 [2mJul 13 14:25:52.520[0m [92mINF[0m ⚠️ Error pushing local changes: SQL logic error: no such table: events (1)
 [2mJul 13 14:25:53.173[0m [92mINF[0m exited google calendar sync
+[2mJul 29 13:21:23.879[0m [92mINF[0m entering google calendar sync
+[2mJul 29 13:23:05.839[0m [92mINF[0m ⚠️ Error pushing local changes: missing destination name task_id in *[]googlecalendarsync.Event
+[2mJul 29 13:23:06.141[0m [92mINF[0m ❌ Error pushing changes from events to tasks: missing destination name task_id in *[]googlecalendarsync.Event
+[2mJul 29 13:23:13.449[0m [92mINF[0m entering google calendar sync
+[2mJul 29 13:23:13.449[0m [92mINF[0m ⚠️ Error pushing local changes: missing destination name task_id in *[]googlecalendarsync.Event
+[2mJul 29 13:23:13.739[0m [92mINF[0m ❌ Error pushing changes from events to tasks: missing destination name task_id in *[]googlecalendarsync.Event
+[2mJul 29 13:42:31.189[0m [92mINF[0m entering google calendar sync
+[2mJul 29 13:42:31.189[0m [92mINF[0m ⚠️ Error pushing local changes: missing destination name task_id in *[]googlecalendarsync.Event
+[2mJul 29 13:42:31.518[0m [92mINF[0m ❌ Error pushing changes from events to tasks: missing destination name task_id in *[]googlecalendarsync.Event
+[2mJul 29 13:44:07.011[0m [92mINF[0m entering google calendar sync
+[2mJul 29 13:44:07.012[0m [92mINF[0m ⚠️ Error pushing local changes: missing destination name task_id in *[]googlecalendarsync.Event
+[2mJul 29 13:44:07.301[0m [92mINF[0m ❌ Error pushing changes from events to tasks: missing destination name task_id in *[]googlecalendarsync.Event
+[2mJul 29 14:47:21.118[0m [92mINF[0m entering google calendar sync
+[2mJul 29 14:47:21.672[0m [92mINF[0m exited google calendar sync
+[2mJul 29 15:03:47.986[0m [92mINF[0m entering google calendar sync
+[2mJul 29 15:03:53.568[0m [92mINF[0m exited google calendar sync
+[2mJul 29 15:53:39.146[0m [92mINF[0m entering google calendar sync
+[2mJul 29 15:53:39.694[0m [92mINF[0m ❌ Error pulling remote changes: SQL logic error: near "task_id": syntax error (1)
+[2mJul 29 15:54:53.808[0m [92mINF[0m entering google calendar sync
+[2mJul 29 15:54:54.348[0m [92mINF[0m ❌ Error pulling remote changes: SQL logic error: near "task_id": syntax error (1)
+[2mJul 29 15:57:00.592[0m [92mINF[0m entering google calendar sync
+[2mJul 29 15:57:01.085[0m [92mINF[0m ❌ Error pulling remote changes: SQL logic error: 9 values for 10 columns (1)
+[2mJul 29 16:21:07.618[0m [92mINF[0m entering google calendar sync
+[2mJul 29 16:21:08.137[0m [92mINF[0m ❌ Error pulling remote changes: missing argument with index 10
+[2mJul 29 16:21:33.490[0m [92mINF[0m entering google calendar sync
+[2mJul 29 16:21:34.008[0m [92mINF[0m ❌ Error pushing changes from events to tasks: sql: Scan error on column index 9, name "task_id": converting driver.Value type string ("") to a int64: invalid syntax
+[2mJul 29 16:24:58.216[0m [92mINF[0m entering google calendar sync
+[2mJul 29 16:24:58.706[0m [92mINF[0m ❌ Error pushing changes from events to tasks: sql: Scan error on column index 9, name "task_id": converting driver.Value type string ("") to a int64: invalid syntax
+[2mJul 30 09:45:19.694[0m [92mINF[0m entering google calendar sync
+[2mJul 30 09:45:20.240[0m [92mINF[0m ❌ Error pushing changes from events to tasks: sql: Scan error on column index 9, name "task_id": converting driver.Value type string ("") to a int64: invalid syntax
+[2mJul 30 10:12:50.622[0m [92mINF[0m entering google calendar sync
+[2mJul 30 10:12:51.201[0m [92mINF[0m ❌ Error pushing changes from events to tasks: sql: Scan error on column index 9, name "task_id": converting driver.Value type string ("") to a int64: invalid syntax
+[2mJul 30 10:15:27.771[0m [92mINF[0m ENTERING google calendar sync
+[2mJul 30 10:15:28.259[0m [92mINF[0m ❌ Error pushing changes from events to tasks: sql: Scan error on column index 9, name "task_id": converting driver.Value type string ("") to a int64: invalid syntax
+[2mJul 30 10:18:14.286[0m [92mINF[0m ENTERING google calendar sync
+[2mJul 30 10:18:14.286[0m [92mINF[0m ENTERING Two Way Sync
+[2mJul 30 10:18:14.810[0m [92mINF[0m ❌ Error pushing changes from events to tasks: sql: Scan error on column index 9, name "task_id": converting driver.Value type string ("") to a int64: invalid syntax

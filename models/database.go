@@ -72,6 +72,7 @@ func StartDatabase() (*sqlx.DB, error) {
 			update_tasks_db 		INTEGER DEFAULT 0,
 			update_calendar 		INTEGER DEFAULT 0,
 			deleted					 	INTEGER DEFAULT 0,
+			task_id  INTEGER,
 		  FOREIGN KEY (task_id) REFERENCES tasks(task_id)
 		);`
 

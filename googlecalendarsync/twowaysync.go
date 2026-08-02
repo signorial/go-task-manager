@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -38,37 +39,38 @@ type Event struct {
 	UpdateTasksDB  bool   `db:"update_tasks_db"`
 	UpdateCalendar bool   `db:"update_calendar"`
 	Deleted        bool   `db:"deleted"`
-	FKTasksTaskID  int64  `db:"fk_tasks_task_id"`
+	TaskID         int64  `db:"task_id"`
 }
 
-func TwoWaySync(db *sqlx.DB) error {
+func TwoWaySync(db *sqlx.DB, logger *slog.Logger) error {
+	slog.Info("ENTERING Two Way Sync")
 	ctx := context.Background()
 
 	// 2. Auth Google Client
 	client, err := getClient(ctx, credentialsFile)
 	if err != nil {
-		log.Fatalf("OAuth setup failed: %v", err)
+		slog.Error("OAuth setup failed: %v", err)
 	}
 
 	srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
-		log.Fatalf("Calendar service setup failed: %v", err)
+		slog.Error("Calendar service setup failed: %v", err)
 	}
 
 	// 3. Two-Way Sync Workflow
-	fmt.Println("➡️ Pushing local SQLite modifications to Google Calendar...")
+	slog.Info("➡️ Pushing local SQLite modifications to Google Calendar...")
 	if err := pushLocalChanges(db, srv); err != nil {
-		log.Printf("⚠️ Error pushing local changes: %v", err)
+		slog.Info("⚠️ Error pushing local changes: ", "err", err)
 	}
 
 	fmt.Println("⬅️ Pulling incremental changes from Google Calendar...")
 	if err := pullRemoteChanges(db, srv); err != nil {
-		log.Fatalf("❌ Error pulling remote changes: %v", err)
+		slog.Error("❌ Error pulling remote changes: ", "err", err)
 	}
 
 	fmt.Println("⬅️ Pushing changes to events to tasks table...")
 	if err := UpdateTasksWithEvents(db); err != nil {
-		log.Fatalf("❌ Error pushing changes from events to tasks: %v", err)
+		slog.Error("❌ Error pushing changes from events to tasks: %v", err)
 	}
 
 	fmt.Println("✅ Synchronization round-trip complete.")
@@ -182,7 +184,7 @@ func UpdateTasksWithEvents(db *sqlx.DB) error {
 
 	for _, ev := range localEvents {
 		if ev.Deleted {
-			_, _ = db.Exec("UPDATE tasks SET deleted = 1  WHERE task_id = ?", ev.FKTasksTaskID) // no longer deleting items
+			_, _ = db.Exec("UPDATE tasks SET deleted = 1  WHERE task_id = ?", ev.TaskID) // no longer deleting items
 			_, err := db.Exec("UPDATE events SET update_tasks_db = 0 WHERE id = ?", ev.ID)
 			if err != nil {
 				log.Printf("failed to update events update_tasks_db flag: %v", err)
@@ -191,9 +193,9 @@ func UpdateTasksWithEvents(db *sqlx.DB) error {
 			continue
 		}
 
-		if ev.FKTasksTaskID != 0 {
+		if ev.TaskID != 0 {
 			// get the task
-			task, err := models.DBGetTask(db, ev.FKTasksTaskID)
+			task, err := models.DBGetTask(db, ev.TaskID)
 			if err != nil {
 				log.Printf("failed to get task %v", err)
 				continue
@@ -245,6 +247,7 @@ func UpdateTasksWithEvents(db *sqlx.DB) error {
 
 // convert event to task
 func convertEventToTask(e Event, t models.Task) (models.Task, error) {
+	log.Printf("entering convertEventToTask")
 	t.Description = e.Summary
 	t.Status = "fromEvent"
 	// created_at:
@@ -286,7 +289,8 @@ func convertEventToTask(e Event, t models.Task) (models.Task, error) {
 	// progress:
 	// parent_task_id:
 	t.Deleted = e.Deleted
-
+	log.Printf("exiting convertEventToTask error: %v", err)
+	log.Printf("Converted task: %+v\n", t)
 	return t, err
 }
 
@@ -334,7 +338,6 @@ func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 			End:         &calendar.EventDateTime{DateTime: ev.EndTime},
 		}
 		// TODO: fix the start tiem end time logic to handle dates and datetimes this is a change
-		// TODO-  need to return laptop
 
 		var apiErr error
 		if isLocalOnlyID(ev.ID) {
@@ -392,11 +395,11 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	fmt.Printf("Go to browser: \n%v\nType code: ", authURL)
 	var authCode string
 	if _, err := fmt.Scan(&authCode); err != nil {
-		log.Fatalf("Code read error: %v", err)
+		slog.Error("Code read error: ", "err", err)
 	}
 	tok, err := config.Exchange(context.TODO(), authCode)
 	if err != nil {
-		log.Fatalf("Exchange error: %v", err)
+		slog.Error("Exchange error: ", "err", err)
 	}
 	return tok
 }
@@ -415,14 +418,14 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 func saveToken(path string, token *oauth2.Token) {
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
-		log.Fatalf("Cache error: %v", err)
+		slog.Error("Cache error: ", "err", err)
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
 }
 
 func UpdateForeignKey(db *sqlx.DB, EventID string, FKTasksTaskID int64) error {
-	query := `UPDATE events SET fk_tasks_task_id = ? WHERE ID = ?`
+	query := `UPDATE events SET task_id = ? WHERE ID = ?`
 	_, err := db.Exec(query, FKTasksTaskID, EventID)
 	if err != nil {
 		return err
