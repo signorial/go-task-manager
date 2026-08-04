@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -39,7 +38,7 @@ type Event struct {
 	UpdateTasksDB  bool   `db:"update_tasks_db"`
 	UpdateCalendar bool   `db:"update_calendar"`
 	Deleted        bool   `db:"deleted"`
-	TaskID         int64  `db:"task_id"`
+	TaskID         *int64 `db:"task_id"`
 }
 
 func TwoWaySync(db *sqlx.DB, logger *slog.Logger) error {
@@ -49,12 +48,12 @@ func TwoWaySync(db *sqlx.DB, logger *slog.Logger) error {
 	// 2. Auth Google Client
 	client, err := getClient(ctx, credentialsFile)
 	if err != nil {
-		slog.Error("OAuth setup failed: %v", err)
+		slog.Error("OAuth setup failed: ", "err", err)
 	}
 
 	srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
-		slog.Error("Calendar service setup failed: %v", err)
+		slog.Error("Calendar service setup failed: ", "err", err)
 	}
 
 	// 3. Two-Way Sync Workflow
@@ -63,17 +62,17 @@ func TwoWaySync(db *sqlx.DB, logger *slog.Logger) error {
 		slog.Info("⚠️ Error pushing local changes: ", "err", err)
 	}
 
-	fmt.Println("⬅️ Pulling incremental changes from Google Calendar...")
+	slog.Info("⬅️ Pulling incremental changes from Google Calendar...")
 	if err := pullRemoteChanges(db, srv); err != nil {
 		slog.Error("❌ Error pulling remote changes: ", "err", err)
 	}
 
-	fmt.Println("⬅️ Pushing changes to events to tasks table...")
+	slog.Info("⬅️ Pushing change from events to tasks table...")
 	if err := UpdateTasksWithEvents(db); err != nil {
-		slog.Error("❌ Error pushing changes from events to tasks: %v", err)
+		slog.Error("❌ Error pushing changes from events to tasks: ", "err", err)
 	}
 
-	fmt.Println("✅ Synchronization round-trip complete.")
+	slog.Info("✅ Synchronization round-trip complete.")
 	return nil
 }
 
@@ -97,7 +96,7 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 		if err != nil {
 			var gErr *googleapi.Error
 			if errors.As(err, &gErr) && gErr.Code == http.StatusGone {
-				fmt.Println("Sync token expired. Resetting baseline...")
+				slog.Info("Sync token expired. Resetting baseline...")
 				_, _ = db.Exec("DELETE FROM sync_meta WHERE key = 'sync_token'")
 				return pullRemoteChanges(db, srv)
 			}
@@ -174,46 +173,50 @@ func pullRemoteChanges(db *sqlx.DB, srv *calendar.Service) error {
 
 // ---  SQLITE EVENTS to TASKS ---
 func UpdateTasksWithEvents(db *sqlx.DB) error {
+	slog.Info("ENTERING UpdateTasksWithEvents")
 	var localEvents []Event
 
 	// sqlx automatically maps database fields to struct attributes
 	err := db.Select(&localEvents, "SELECT * FROM events WHERE update_tasks_db = 1")
 	if err != nil {
+		slog.Error("failed to get events from events table", "err", err)
 		return err
 	}
 
 	for _, ev := range localEvents {
-		if ev.Deleted {
-			_, _ = db.Exec("UPDATE tasks SET deleted = 1  WHERE task_id = ?", ev.TaskID) // no longer deleting items
-			_, err := db.Exec("UPDATE events SET update_tasks_db = 0 WHERE id = ?", ev.ID)
-			if err != nil {
-				log.Printf("failed to update events update_tasks_db flag: %v", err)
+		if ev.TaskID != nil {
+			slog.Info("deleting task")
+			if ev.Deleted {
+				slog.Info("Deleting task in tasks")
+				_, _ = db.Exec("UPDATE tasks SET deleted = 1  WHERE task_id = ?", *ev.TaskID) // no longer deleting items
+				_, err := db.Exec("UPDATE events SET update_tasks_db = 0 WHERE id = ?", ev.ID)
+				if err != nil {
+					slog.Error("failed to update events update_tasks_db flag: ", "err", err)
+					continue
+				}
 				continue
 			}
-			continue
-		}
-
-		if ev.TaskID != 0 {
-			// get the task
-			task, err := models.DBGetTask(db, ev.TaskID)
+			slog.Info("get task using event taskID")
+			task, err := models.DBGetTask(db, *ev.TaskID)
 			if err != nil {
-				log.Printf("failed to get task %v", err)
+				slog.Error("failed to get task ", "err", err)
 				continue
 			}
-			// convert event to task
+			slog.Info("convert event to task")
 			evTask, err := convertEventToTask(ev, task)
 			if err != nil {
-				log.Printf("evtask %v", evTask)
+				slog.Error("evtask ", "evTask", evTask)
 				continue
 			}
+			slog.Info("calling DBUpdateTask with the converted Event", "evTask", evTask)
 			err = models.DBUpdateTask(db, evTask)
 			if err != nil {
-				log.Printf("Failed to update task from events to tasks %v", err)
+				slog.Error("Failed to update task from events to tasks ", "err", err)
 				continue
 			}
 			_, err = db.Exec("UPDATE events SET update_tasks_db = 0 WHERE id = ?", ev.ID)
 			if err != nil {
-				log.Printf("failed to update events update_tasks_db flag: %v", err)
+				slog.Error("failed to update events update_tasks_db flag: ", "err", err)
 				continue
 			}
 		} else {
@@ -221,25 +224,24 @@ func UpdateTasksWithEvents(db *sqlx.DB) error {
 			var task models.Task
 			evTask, err := convertEventToTask(ev, task)
 			if err != nil {
-				log.Printf("evtask %v", evTask)
+				slog.Error("evtask ", "evTask", evTask)
 				continue
 			}
 			id, err := models.DBAddTask(db, evTask)
 			if err != nil {
-				log.Printf("Failed to add task from events to tasks %v", err)
+				slog.Error("Failed to add task from events to tasks ", "err", err)
 				continue
 			}
 			err = UpdateForeignKey(db, ev.ID, id)
 			if err != nil {
-				log.Printf("Failed to update foreign key: %v", err)
+				slog.Error("Failed to update foreign key: ", "err", err)
 			}
 			_, err = db.Exec("UPDATE events SET update_tasks_db = 0 WHERE id = ?", ev.ID)
 			if err != nil {
-				log.Printf("failed to update events update_tasks_db flag: %v", err)
+				slog.Error("failed to update events update_tasks_db flag: ", "err", err)
 				continue
 			}
 		}
-
 	}
 
 	return nil
@@ -247,7 +249,7 @@ func UpdateTasksWithEvents(db *sqlx.DB) error {
 
 // convert event to task
 func convertEventToTask(e Event, t models.Task) (models.Task, error) {
-	log.Printf("entering convertEventToTask")
+	slog.Info("entering convertEventToTask")
 	t.Description = e.Summary
 	t.Status = "fromEvent"
 	// created_at:
@@ -255,7 +257,7 @@ func convertEventToTask(e Event, t models.Task) (models.Task, error) {
 
 	dt, err := parseGoogleTime(e.UpdatedAt)
 	if err != nil {
-		log.Printf("failed to convert string date to time %s, %v", e.UpdatedAt, err)
+		slog.Error("failed to convert string date to time ", "UpdatedAt", e.UpdatedAt, "err", err)
 		return t, err
 	} else {
 		t.UpdatedAt = dt
@@ -265,21 +267,21 @@ func convertEventToTask(e Event, t models.Task) (models.Task, error) {
 	// do_date:
 	dt, err = parseGoogleTime(e.EndTime)
 	if err != nil {
-		log.Printf("failed to convert string date to time %s, %v", e.EndTime, err)
+		slog.Error("failed to convert string date to time ", "EndTime", e.EndTime, "err", err)
 		return t, err
 	} else {
 		t.FinalDueDate = dt
 	}
 	dt, err = parseGoogleTime(e.StartTime)
 	if err != nil {
-		log.Printf("failed to convert string date to time %s, %v", e.StartTime, err)
+		slog.Error("failed to convert string date to time ", "StartTime", e.StartTime, "err", err)
 		return t, err
 	} else {
 		t.StartTime = dt
 	}
 	dt, err = parseGoogleTime(e.EndTime)
 	if err != nil {
-		log.Printf("failed to convert string date to time %s, %v", e.EndTime, err)
+		slog.Error("failed to convert string date to time ", "EndTime", e.EndTime, "err", err)
 		return t, err
 	} else {
 		t.EndTime = dt
@@ -289,8 +291,8 @@ func convertEventToTask(e Event, t models.Task) (models.Task, error) {
 	// progress:
 	// parent_task_id:
 	t.Deleted = e.Deleted
-	log.Printf("exiting convertEventToTask error: %v", err)
-	log.Printf("Converted task: %+v\n", t)
+
+	slog.Info("Converted task: ", "taksk", t)
 	return t, err
 }
 
@@ -321,7 +323,7 @@ func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 		if ev.Deleted {
 			err = srv.Events.Delete("primary", ev.ID).Do()
 			if err != nil && !isNotFoundError(err) {
-				log.Printf("Failed to push deletion for event %s: %v", ev.ID, err)
+				slog.Error("Failed to push deletion for event ", "ID", ev.ID, "err", err)
 				continue
 			}
 			if err == nil {
@@ -356,7 +358,7 @@ func pushLocalChanges(db *sqlx.DB, srv *calendar.Service) error {
 		}
 
 		if apiErr != nil {
-			log.Printf("Failed to update remote event %s: %v", ev.ID, apiErr)
+			slog.Error("Failed to update remote event ", "ID", ev.ID, "apiErr", apiErr)
 		}
 	}
 	return nil

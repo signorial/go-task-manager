@@ -49,3 +49,88 @@
 [2mJul 30 10:18:14.286[0m [92mINF[0m ENTERING google calendar sync
 [2mJul 30 10:18:14.286[0m [92mINF[0m ENTERING Two Way Sync
 [2mJul 30 10:18:14.810[0m [92mINF[0m ❌ Error pushing changes from events to tasks: sql: Scan error on column index 9, name "task_id": converting driver.Value type string ("") to a int64: invalid syntax
+[2mAug  4 09:32:23.334[0m [92mINF[0m ENTERING google calendar sync
+[2mAug  4 09:32:23.334[0m [92mINF[0m ENTERING Two Way Sync
+[2mAug  4 09:32:23.334[0m [92mINF[0m ➡️ Pushing local SQLite modifications to Google Calendar...
+[2mAug  4 09:32:23.899[0m [91mERR[0m ❌ Error pushing changes from events to tasks: %v [2m!BADKEY=[0m"sql: Scan error on column index 9, name \"task_id\": converting driver.Value type string (\"\") to a int64: invalid syntax"
+[2mAug  4 09:32:23.899[0m [92mINF[0m EXITING google calendar sync
+[2mAug  4 09:32:35.796[0m [92mINF[0m ENTERING google calendar sync
+[2mAug  4 09:32:35.796[0m [92mINF[0m ENTERING Two Way Sync
+[2mAug  4 09:32:35.797[0m [92mINF[0m ➡️ Pushing local SQLite modifications to Google Calendar...
+[2mAug  4 09:32:36.256[0m [91mERR[0m ❌ Error pushing changes from events to tasks: %v [2m!BADKEY=[0m"sql: Scan error on column index 9, name \"task_id\": converting driver.Value type string (\"\") to a int64: invalid syntax"
+[2mAug  4 09:32:36.256[0m [92mINF[0m EXITING google calendar sync
+[2mAug  4 11:13:18.546[0m [92mINF[0m ENTERING google calendar sync
+[2mAug  4 11:13:18.546[0m [92mINF[0m ENTERING Two Way Sync
+[2mAug  4 11:13:18.547[0m [92mINF[0m ➡️ Pushing local SQLite modifications to Google Calendar...
+[2mAug  4 11:13:18.547[0m [92mINF[0m ⬅️ Pulling incremental changes from Google Calendar...
+[2mAug  4 11:13:19.082[0m [92mINF[0m ⬅️ Pushing changes to events to tasks table...
+[2mAug  4 11:13:19.082[0m [91mERR[0m ❌ Error pushing changes from events to tasks:  [2merr=[0m"sql: Scan error on column index 9, name \"task_id\": converting NULL to int64 is unsupported"
+[2mAug  4 11:13:19.082[0m [92mINF[0m ✅ Synchronization round-trip complete.
+[2mAug  4 11:13:19.082[0m [92mINF[0m EXITING google calendar sync
+[2mAug  4 11:25:14.741[0m [91mERR[0m app error [2merror=[0mEOF
+[2mAug  4 12:11:56.974[0m [92mINF[0m ENTERING google calendar sync
+[2mAug  4 12:11:56.975[0m [92mINF[0m ENTERING Two Way Sync
+[2mAug  4 12:11:56.975[0m [92mINF[0m ➡️ Pushing local SQLite modifications to Google Calendar...
+[2mAug  4 12:11:56.975[0m [92mINF[0m ⬅️ Pulling incremental changes from Google Calendar...
+[2mAug  4 12:11:57.479[0m [92mINF[0m ⬅️ Pushing change froo events to tasks table...
+[2mAug  4 12:11:57.480[0m [91mERR[0m ❌ Error pushing changes from events to tasks:  [2merr=[0m"sql: Scan error on column index 9, name \"task_id\": converting NULL to int64 is unsupported"
+[2mAug  4 12:11:57.480[0m [92mINF[0m ✅ Synchronization round-trip complete.
+[2mAug  4 12:11:57.480[0m [92mINF[0m EXITING google calendar sync
+[2mAug  4 12:15:14.315[0m [92mINF[0m ENTERING google calendar sync
+[2mAug  4 12:15:14.315[0m [92mINF[0m ENTERING Two Way Sync
+[2mAug  4 12:15:14.315[0m [92mINF[0m ➡️ Pushing local SQLite modifications to Google Calendar...
+[2mAug  4 12:15:14.315[0m [92mINF[0m ⬅️ Pulling incremental changes from Google Calendar...
+[2mAug  4 12:15:15.050[0m [92mINF[0m ⬅️ Pushing change froo events to tasks table...
+[2mAug  4 12:15:15.051[0m [91mERR[0m ❌ Error pushing changes from events to tasks:  [2merr=[0m"sql: Scan error on column index 9, name \"task_id\": converting NULL to int64 is unsupported"
+[2mAug  4 12:15:15.051[0m [92mINF[0m ✅ Synchronization round-trip complete.
+[2mAug  4 12:15:15.051[0m [92mINF[0m EXITING google calendar sync
+[2mAug  4 12:23:16.179[0m [92mINF[0m ENTERING google calendar sync
+[2mAug  4 12:23:16.179[0m [92mINF[0m ENTERING Two Way Sync
+[2mAug  4 12:23:16.179[0m [92mINF[0m ➡️ Pushing local SQLite modifications to Google Calendar...
+[2mAug  4 12:23:16.179[0m [92mINF[0m ⬅️ Pulling incremental changes from Google Calendar...
+[2mAug  4 12:23:16.686[0m [92mINF[0m ⬅️ Pushing change from events to tasks table...
+[2mAug  4 12:23:16.686[0m [92mINF[0m ENTERING UpdateTasksWithEvents
+[2mAug  4 12:23:16.686[0m [91mERR[0m ❌ Error pushing changes from events to tasks:  [2merr=[0m"sql: Scan error on column index 9, name \"task_id\": converting NULL to int64 is unsupported"
+[2mAug  4 12:23:16.686[0m [92mINF[0m ✅ Synchronization round-trip complete.
+[2mAug  4 12:23:16.686[0m [92mINF[0m EXITING google calendar sync
+[2mAug  4 13:31:12.298[0m [92mINF[0m ENTERING google calendar sync
+[2mAug  4 13:31:12.298[0m [92mINF[0m ENTERING Two Way Sync
+[2mAug  4 13:31:12.299[0m [92mINF[0m ➡️ Pushing local SQLite modifications to Google Calendar...
+[2mAug  4 13:31:12.299[0m [92mINF[0m ⬅️ Pulling incremental changes from Google Calendar...
+[2mAug  4 13:31:12.900[0m [92mINF[0m ⬅️ Pushing change from events to tasks table...
+[2mAug  4 13:31:12.900[0m [92mINF[0m ENTERING UpdateTasksWithEvents
+[2mAug  4 13:31:12.900[0m [91mERR[0m ❌ Error pushing changes from events to tasks:  [2merr=[0m"sql: Scan error on column index 9, name \"task_id\": converting NULL to int64 is unsupported"
+[2mAug  4 13:31:12.900[0m [92mINF[0m ✅ Synchronization round-trip complete.
+[2mAug  4 13:31:12.900[0m [92mINF[0m EXITING google calendar sync
+[2mAug  4 13:33:13.741[0m [92mINF[0m ENTERING google calendar sync
+[2mAug  4 13:33:13.741[0m [92mINF[0m ENTERING Two Way Sync
+[2mAug  4 13:33:13.741[0m [92mINF[0m ➡️ Pushing local SQLite modifications to Google Calendar...
+[2mAug  4 13:33:13.741[0m [92mINF[0m ⬅️ Pulling incremental changes from Google Calendar...
+[2mAug  4 13:33:14.252[0m [92mINF[0m ⬅️ Pushing change from events to tasks table...
+[2mAug  4 13:33:14.252[0m [92mINF[0m ENTERING UpdateTasksWithEvents
+[2mAug  4 13:33:14.252[0m [91mERR[0m failed to get events from events table [2merr=[0m"sql: Scan error on column index 9, name \"task_id\": converting NULL to int64 is unsupported"
+[2mAug  4 13:33:14.252[0m [91mERR[0m ❌ Error pushing changes from events to tasks:  [2merr=[0m"sql: Scan error on column index 9, name \"task_id\": converting NULL to int64 is unsupported"
+[2mAug  4 13:33:14.252[0m [92mINF[0m ✅ Synchronization round-trip complete.
+[2mAug  4 13:33:14.252[0m [92mINF[0m EXITING google calendar sync
+[2mAug  4 14:09:39.718[0m [92mINF[0m ENTERING google calendar sync
+[2mAug  4 14:09:39.718[0m [92mINF[0m ENTERING Two Way Sync
+[2mAug  4 14:09:39.718[0m [92mINF[0m ➡️ Pushing local SQLite modifications to Google Calendar...
+[2mAug  4 14:09:39.718[0m [92mINF[0m ⬅️ Pulling incremental changes from Google Calendar...
+[2mAug  4 14:09:40.408[0m [92mINF[0m ⬅️ Pushing change from events to tasks table...
+[2mAug  4 14:09:40.408[0m [92mINF[0m ENTERING UpdateTasksWithEvents
+[2mAug  4 14:09:40.408[0m [92mINF[0m entering convertEventToTask
+[2mAug  4 14:09:40.408[0m [92mINF[0m Converted task: %+v
+ [2m!BADKEY=[0m"{TaskID:<nil> Description:July 29 test task Status:fromEvent CreatedAt:<nil> UpdatedAt:2026-07-29 21:53:17.9 +0000 UTC Priority: AssigneeID:<nil> DoDate:<nil> FinalDueDate:2026-07-30 17:00:00 -0600 MDT StartTime:2026-07-30 16:00:00 -0600 MDT EndTime:2026-07-30 17:00:00 -0600 MDT CompletedAt:<nil> EstimatedHours:<nil> Progress:<nil> ParentTaskID:<nil> Deleted:false}"
+[2mAug  4 14:09:40.458[0m [92mINF[0m entering convertEventToTask
+[2mAug  4 14:09:40.458[0m [92mINF[0m Converted task: %+v
+ [2m!BADKEY=[0m"{TaskID:<nil> Description:event to test they sync Status:fromEvent CreatedAt:<nil> UpdatedAt:2026-07-29 21:54:42.568 +0000 UTC Priority: AssigneeID:<nil> DoDate:<nil> FinalDueDate:2026-07-30 17:00:00 -0600 MDT StartTime:2026-07-30 16:00:00 -0600 MDT EndTime:2026-07-30 17:00:00 -0600 MDT CompletedAt:<nil> EstimatedHours:<nil> Progress:<nil> ParentTaskID:<nil> Deleted:false}"
+[2mAug  4 14:09:40.498[0m [92mINF[0m ✅ Synchronization round-trip complete.
+[2mAug  4 14:09:40.498[0m [92mINF[0m EXITING google calendar sync
+[2mAug  4 14:14:02.630[0m [92mINF[0m ENTERING google calendar sync
+[2mAug  4 14:14:02.630[0m [92mINF[0m ENTERING Two Way Sync
+[2mAug  4 14:14:02.630[0m [92mINF[0m ➡️ Pushing local SQLite modifications to Google Calendar...
+[2mAug  4 14:14:02.630[0m [92mINF[0m ⬅️ Pulling incremental changes from Google Calendar...
+[2mAug  4 14:14:03.133[0m [92mINF[0m ⬅️ Pushing change from events to tasks table...
+[2mAug  4 14:14:03.133[0m [92mINF[0m ENTERING UpdateTasksWithEvents
+[2mAug  4 14:14:03.133[0m [92mINF[0m ✅ Synchronization round-trip complete.
+[2mAug  4 14:14:03.133[0m [92mINF[0m EXITING google calendar sync

@@ -77,6 +77,7 @@ func StartDatabase() (*sqlx.DB, error) {
 		);`
 
 	db.MustExec(schema) // creates table if it doesn't exist
+	db.MustExec("UPDATE events SET task_id = NULL WHERE task_id = ''")
 	return db, err
 }
 
